@@ -34,16 +34,12 @@ export function parseSalesforceExceptionEmail(
   const orgName = orgMatch?.[1]?.trim() ?? "Unknown";
 
   // Extract exception type (e.g., System.NullPointerException)
-  const exTypeMatch = body.match(
-    /(System\.\w+Exception|[\w.]+Exception):\s*(.+)/
-  );
+  const exTypeMatch = body.match(/(System\.\w+Exception|[\w.]+Exception):\s*(.+)/);
   const exceptionType = exTypeMatch?.[1] ?? "Unknown";
   const message = exTypeMatch?.[2]?.trim() ?? body.slice(0, 200);
 
   // Extract Apex class/trigger name
-  const classMatch = body.match(
-    /Class\.(\S+)\.|Trigger\.(\S+)\./
-  );
+  const classMatch = body.match(/Class\.(\S+)\.|Trigger\.(\S+)\./);
   const apexClass = classMatch?.[1] ?? classMatch?.[2] ?? null;
 
   // Extract line number
@@ -51,9 +47,7 @@ export function parseSalesforceExceptionEmail(
   const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
 
   // Extract stack trace (everything after "Apex script unhandled exception")
-  const traceMatch = body.match(
-    /(?:Apex script unhandled exception|caused by:)([\s\S]+)/i
-  );
+  const traceMatch = body.match(/(?:Apex script unhandled exception|caused by:)([\s\S]+)/i);
   const stackTrace = traceMatch?.[1]?.trim() ?? body;
 
   // Fingerprint for dedup: hash exception type + class + line

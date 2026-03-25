@@ -5,12 +5,7 @@
 import { runClaudeSession } from "../claude/session.js";
 import { logger } from "../utils/logger.js";
 
-const {
-  PR_NUMBER = "",
-  PR_TITLE = "",
-  COMMENT_BODY = "",
-  COMMENT_AUTHOR = "",
-} = process.env;
+const { PR_NUMBER = "", PR_TITLE = "", COMMENT_BODY = "", COMMENT_AUTHOR = "" } = process.env;
 
 if (!PR_NUMBER || !COMMENT_BODY) {
   logger.error("Missing required environment variables: PR_NUMBER, COMMENT_BODY");

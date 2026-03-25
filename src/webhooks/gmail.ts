@@ -22,17 +22,16 @@ let lastHistoryId: string | null = null;
 // Routing table: +tag → GitHub repo (e.g. "dropbox" → "0cv/dropbox-dev")
 let routing: Record<string, string> = {};
 readFile(new URL("../../../routing.json", import.meta.url), "utf-8")
-  .then((raw) => { routing = JSON.parse(raw); })
+  .then((raw) => {
+    routing = JSON.parse(raw);
+  })
   .catch(() => logger.warn("routing.json not found — all emails will be skipped"));
 
 /**
  * POST /webhooks/gmail
  * Receives Pub/Sub push notifications from Gmail.
  */
-export async function gmailWebhookHandler(
-  req: Request,
-  res: Response
-): Promise<void> {
+export async function gmailWebhookHandler(req: Request, res: Response): Promise<void> {
   try {
     const pubsubMessage = req.body?.message;
     if (!pubsubMessage?.data) {
@@ -40,9 +39,7 @@ export async function gmailWebhookHandler(
       return;
     }
 
-    const data = JSON.parse(
-      Buffer.from(pubsubMessage.data, "base64").toString()
-    );
+    const data = JSON.parse(Buffer.from(pubsubMessage.data, "base64").toString());
     const { historyId } = data;
 
     logger.info({ historyId }, "Gmail Pub/Sub notification received");
@@ -87,7 +84,7 @@ async function fetchAndRoute(startHistoryId: string): Promise<void> {
     const headers = msg.data.payload?.headers ?? [];
     const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
     const to = headers.find((h) => h.name?.toLowerCase() === "to")?.value ?? "";
-    const body = decodeMessageBody(msg.data.payload);
+    const body = decodeMessageBody(msg.data.payload ?? {});
 
     // Resolve target repo from +tag in To: address
     const targetRepo = resolveRepo(to);
@@ -109,7 +106,10 @@ async function fetchAndRoute(startHistoryId: string): Promise<void> {
     // Triage: skip operational noise (governor limits, lock contention, timeouts)
     const triage = await triageError(sfError);
     if (!triage.isCodeBug) {
-      logger.info({ reason: triage.reason, fingerprint: sfError.fingerprint }, "Operational error, skipping dispatch");
+      logger.info(
+        { reason: triage.reason, fingerprint: sfError.fingerprint },
+        "Operational error, skipping dispatch"
+      );
       continue;
     }
 
@@ -130,11 +130,16 @@ function resolveRepo(toAddress: string): string | null {
   return routing[tag] ?? null;
 }
 
-function decodeMessageBody(payload: any): string {
+interface GmailPayload {
+  body?: { data?: string | null };
+  parts?: Array<{ mimeType?: string | null; body?: { data?: string | null } }>;
+}
+
+function decodeMessageBody(payload: GmailPayload): string {
   if (payload?.body?.data) {
     return Buffer.from(payload.body.data, "base64url").toString();
   }
-  const parts: any[] = payload?.parts ?? [];
+  const parts = payload?.parts ?? [];
   for (const part of parts) {
     if (part.mimeType === "text/plain" && part.body?.data) {
       return Buffer.from(part.body.data, "base64url").toString();
@@ -144,10 +149,7 @@ function decodeMessageBody(payload: any): string {
 }
 
 function getGmailAuth() {
-  const auth = new google.auth.OAuth2(
-    config.gmailClientId,
-    config.gmailClientSecret
-  );
+  const auth = new google.auth.OAuth2(config.gmailClientId, config.gmailClientSecret);
   auth.setCredentials({ refresh_token: config.gmailRefreshToken });
   return auth;
 }

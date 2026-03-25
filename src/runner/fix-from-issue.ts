@@ -5,11 +5,7 @@
 import { runClaudeSession } from "../claude/session.js";
 import { logger } from "../utils/logger.js";
 
-const {
-  ISSUE_NUMBER = "",
-  ISSUE_TITLE = "",
-  ISSUE_BODY = "",
-} = process.env;
+const { ISSUE_NUMBER = "", ISSUE_TITLE = "", ISSUE_BODY = "" } = process.env;
 
 if (!ISSUE_NUMBER || !ISSUE_TITLE) {
   logger.error("Missing required environment variables: ISSUE_NUMBER, ISSUE_TITLE");

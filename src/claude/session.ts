@@ -17,17 +17,8 @@ export interface SessionResult {
 /**
  * Load a prompt template from the prompts/ directory and interpolate variables.
  */
-async function loadPrompt(
-  name: string,
-  vars: Record<string, string>
-): Promise<string> {
-  const templatePath = join(
-    import.meta.dirname,
-    "..",
-    "..",
-    "prompts",
-    `${name}.md`
-  );
+async function loadPrompt(name: string, vars: Record<string, string>): Promise<string> {
+  const templatePath = join(import.meta.dirname, "..", "..", "prompts", `${name}.md`);
   let template = await readFile(templatePath, "utf-8");
   for (const [key, value] of Object.entries(vars)) {
     template = template.replaceAll(`{{${key}}}`, value);
@@ -55,14 +46,7 @@ export async function runClaudeSession(
       prompt,
       options: {
         maxTurns: parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
-        allowedTools: [
-          "Read",
-          "Edit",
-          "Write",
-          "Bash",
-          "Glob",
-          "Grep",
-        ],
+        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
         cwd: process.cwd(),
         // Load CLAUDE.md and project settings from the SF repo (defaults to [] in 0.1+)
         settingSources: ["project"],
@@ -74,14 +58,10 @@ export async function runClaudeSession(
             lastAssistantText = block.text;
             logger.info({ text: block.text }, "[Claude] text");
 
-            const branchMatch = block.text.match(
-              /branch[:\s]+[`']?([a-zA-Z0-9/_-]+)[`']?/i
-            );
+            const branchMatch = block.text.match(/branch[:\s]+[`']?([a-zA-Z0-9/_-]+)[`']?/i);
             if (branchMatch) branchName = branchMatch[1];
 
-            const prMatch = block.text.match(
-              /https:\/\/github\.com\/[^\s)]+\/pull\/\d+/
-            );
+            const prMatch = block.text.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/);
             if (prMatch) prUrl = prMatch[0];
           }
           if (block.type === "tool_use") {

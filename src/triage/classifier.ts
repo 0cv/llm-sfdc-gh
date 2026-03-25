@@ -32,9 +32,7 @@ Examples of CODE_BUG (fix these):
 Respond in JSON format only:
 {"isCodeBug": true/false, "confidence": "high/medium/low", "reason": "brief explanation"}`;
 
-export async function triageError(
-  error: SalesforceError
-): Promise<TriageResult> {
+export async function triageError(error: SalesforceError): Promise<TriageResult> {
   const authToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
   if (!authToken) {
     logger.info("No CLAUDE_CODE_OAUTH_TOKEN — skipping triage, assuming code bug");
@@ -54,8 +52,7 @@ export async function triageError(
       ],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
     const result = JSON.parse(text) as TriageResult;
 
     logger.info(

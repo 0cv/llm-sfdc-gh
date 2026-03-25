@@ -11,10 +11,7 @@ export async function renewGmailWatch(): Promise<{ historyId: string; expiration
     throw new Error("GMAIL_PUBSUB_TOPIC is not configured");
   }
 
-  const auth = new google.auth.OAuth2(
-    config.gmailClientId,
-    config.gmailClientSecret
-  );
+  const auth = new google.auth.OAuth2(config.gmailClientId, config.gmailClientSecret);
   auth.setCredentials({ refresh_token: config.gmailRefreshToken });
 
   const gmail = google.gmail({ version: "v1", auth });
