@@ -81,14 +81,17 @@ jobs:
 "
 
 # ── iterate-from-review.yml ──────────────────────────────────────────────────
-# Two separate jobs because pull_request_review and issue_comment have different
-# payload shapes — you can't merge them into a single 'with:' block.
-# For issue_comment, prBranch is not in the payload, so we fetch it via API first.
+# Three event shapes, each handled separately:
+#   pull_request_review       — formal submit (Comment/Request changes): branch in payload
+#   pull_request_review_comment — "Add single comment" on a line: branch in payload
+#   issue_comment             — Conversation tab comment: branch NOT in payload, fetch via API
 push_workflow "iterate-from-review.yml" "name: Iterate on PR Review
 
 on:
   pull_request_review:
     types: [submitted]
+  pull_request_review_comment:
+    types: [created]
   issue_comment:
     types: [created]
 
@@ -110,7 +113,23 @@ jobs:
       prBranch: \${{ github.event.pull_request.head.ref }}
     secrets: inherit
 
-  # PR comment — branch is not in payload, fetch it from the API first
+  # Inline line comment ("Add single comment") — branch is in the payload
+  # Also fires for Copilot inline comments, but not for other bots
+  on-line-comment:
+    if: >
+      github.event_name == 'pull_request_review_comment' &&
+      (github.event.comment.user.type != 'Bot' ||
+       github.event.comment.user.login == 'copilot-pull-request-reviewer[bot]')
+    uses: ${LLMREPO}/.github/workflows/iterate-from-review.yml@main
+    with:
+      prNumber: \${{ github.event.pull_request.number }}
+      prTitle: \${{ github.event.pull_request.title }}
+      commentBody: \${{ github.event.comment.body }}
+      commentAuthor: \${{ github.event.comment.user.login }}
+      prBranch: \${{ github.event.pull_request.head.ref }}
+    secrets: inherit
+
+  # PR Conversation comment — branch is not in payload, fetch it from the API first
   # Also fires for Copilot inline comments, but not for other bots
   get-pr-branch:
     if: >
