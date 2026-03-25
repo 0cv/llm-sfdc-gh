@@ -12,7 +12,7 @@ on:
       issueBody:
         type: string
     secrets:
-      ANTHROPIC_API_KEY:
+      ANTHROPIC_AUTH_TOKEN:
         required: true
       SF_AUTH_URL:
         required: true
@@ -60,7 +60,7 @@ jobs:
 
       - name: Run Claude fix-from-issue session
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
           ISSUE_NUMBER: ${{ inputs.issueNumber }}
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}

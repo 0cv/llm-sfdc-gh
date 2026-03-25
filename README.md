@@ -216,10 +216,10 @@ In each repo: Settings → Secrets → Actions
 
 | Secret | Value |
 |--------|-------|
-| `ANTHROPIC_API_KEY` | Anthropic API key |
+| `ANTHROPIC_AUTH_TOKEN` | OAuth token from `claude setup-token` |
 | `SF_AUTH_URL` | `force://PlatformCLI::<token>@yourorg.sandbox.my.salesforce.com` |
 
-`ANTHROPIC_API_KEY` can be set at the GitHub org level to share it across all repos.
+`ANTHROPIC_AUTH_TOKEN` can be set at the GitHub org level to share it across all repos. Generate with: `claude setup-token`.
 `SF_AUTH_URL` is per-repo — each repo has its own Salesforce org credentials.
 
 ---
@@ -249,13 +249,13 @@ In each repo: Settings → Secrets → Actions
 | `GMAIL_PUBSUB_TOPIC` | `projects/<project-id>/topics/sf-errors` |
 | `GITHUB_TOKEN` | PAT with `contents` + `pull-requests` write on all repos in `routing.json` |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
-| `ANTHROPIC_API_KEY` | Anthropic API key — used by Cloud Run for triage |
+| `ANTHROPIC_AUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |
 
 ### GitHub Actions secrets (per repo)
 
 | Secret | Description |
 |--------|-------------|
-| `ANTHROPIC_API_KEY` | Anthropic API key — also set on Cloud Run for triage; can be set at org level |
+| `ANTHROPIC_AUTH_TOKEN` | OAuth token from `claude setup-token` — also needed on Cloud Run for triage; can be set at org level |
 | `SF_AUTH_URL` | SFDX auth URL for this repo's Salesforce org |
 
 ### Local dev only (`.env`, not deployed)

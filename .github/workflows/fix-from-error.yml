@@ -18,7 +18,7 @@ on:
       rawBody:
         type: string
     secrets:
-      ANTHROPIC_API_KEY:
+      ANTHROPIC_AUTH_TOKEN:
         required: true
       SF_AUTH_URL:
         required: true
@@ -65,7 +65,7 @@ jobs:
 
       - name: Run Claude fix session
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
           EXCEPTION_TYPE: ${{ inputs.exceptionType }}
           ERROR_MESSAGE: ${{ inputs.errorMessage }}
           APEX_CLASS: ${{ inputs.apexClass }}

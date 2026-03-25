@@ -35,14 +35,14 @@ Respond in JSON format only:
 export async function triageError(
   error: SalesforceError
 ): Promise<TriageResult> {
-  // Skip triage if no API key configured (local dev with claude.ai login)
-  if (!process.env.ANTHROPIC_API_KEY) {
-    logger.info("No ANTHROPIC_API_KEY — skipping triage, assuming code bug");
-    return { isCodeBug: true, confidence: "low", reason: "Triage skipped (no API key)" };
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN;
+  if (!authToken) {
+    logger.info("No ANTHROPIC_AUTH_TOKEN — skipping triage, assuming code bug");
+    return { isCodeBug: true, confidence: "low", reason: "Triage skipped (no auth token)" };
   }
 
   try {
-    const anthropic = new Anthropic();
+    const anthropic = new Anthropic({ authToken });
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 200,

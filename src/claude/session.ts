@@ -3,7 +3,6 @@
  */
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -45,7 +44,7 @@ export async function runClaudeSession(
 ): Promise<SessionResult> {
   const prompt = await loadPrompt(promptName, vars);
 
-  logger.info({ promptName, repoPath: config.sfRepoPath }, "Starting Claude session");
+  logger.info({ promptName }, "Starting Claude session");
 
   let lastAssistantText = "";
   let branchName: string | null = null;
@@ -55,7 +54,7 @@ export async function runClaudeSession(
     for await (const message of query({
       prompt,
       options: {
-        maxTurns: config.maxClaudeTurns,
+        maxTurns: parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
         allowedTools: [
           "Read",
           "Edit",
@@ -64,7 +63,7 @@ export async function runClaudeSession(
           "Glob",
           "Grep",
         ],
-        cwd: config.sfRepoPath,
+        cwd: process.cwd(),
       },
     })) {
       if (message.type === "assistant") {
