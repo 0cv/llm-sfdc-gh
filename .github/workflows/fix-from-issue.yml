@@ -65,4 +65,6 @@ jobs:
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx tsx /tmp/fix-from-issue.ts
+        run: |
+          echo '{"type":"module"}' > /tmp/package.json
+          npx tsx /tmp/fix-from-issue.ts

@@ -73,4 +73,6 @@ jobs:
           STACK_TRACE: ${{ inputs.stackTrace }}
           RAW_BODY: ${{ inputs.rawBody }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx tsx /tmp/fix-from-error.ts
+        run: |
+          echo '{"type":"module"}' > /tmp/package.json
+          npx tsx /tmp/fix-from-error.ts

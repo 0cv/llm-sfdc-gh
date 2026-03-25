@@ -94,11 +94,13 @@ on:
 
 jobs:
   # Formal review (changes_requested or commented) — branch is in the payload
+  # Also fires for Copilot reviews (copilot-pull-request-reviewer[bot]), but not for other bots
   on-review:
     if: >
       github.event_name == 'pull_request_review' &&
       github.event.review.state != 'approved' &&
-      github.event.review.user.type != 'Bot'
+      (github.event.review.user.type != 'Bot' ||
+       github.event.review.user.login == 'copilot-pull-request-reviewer[bot]')
     uses: ${LLMREPO}/.github/workflows/iterate-from-review.yml@main
     with:
       prNumber: \${{ github.event.pull_request.number }}
@@ -109,11 +111,13 @@ jobs:
     secrets: inherit
 
   # PR comment — branch is not in payload, fetch it from the API first
+  # Also fires for Copilot inline comments, but not for other bots
   get-pr-branch:
     if: >
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
-      github.event.comment.user.type != 'Bot'
+      (github.event.comment.user.type != 'Bot' ||
+       github.event.comment.user.login == 'copilot-pull-request-reviewer[bot]')
     runs-on: ubuntu-latest
     outputs:
       branch: \${{ steps.branch.outputs.branch }}
@@ -138,6 +142,14 @@ jobs:
       prBranch: \${{ needs.get-pr-branch.outputs.branch }}
     secrets: inherit
 "
+
+# ── Create claude-fix label ──────────────────────────────────────────────────
+gh label create "claude-fix" \
+  --repo "$REPO" \
+  --color "5319e7" \
+  --description "Ask Claude to diagnose and fix this issue" \
+  --force
+echo "  label 'claude-fix' ready"
 
 echo "Done. Workflows installed in $REPO/.github/workflows/"
 echo ""
