@@ -39,9 +39,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: |
-          npm install -g @salesforce/cli
-          npm install @anthropic-ai/claude-agent-sdk @anthropic-ai/sdk pino dotenv
+        run: npm install -g @salesforce/cli
 
       - name: Authenticate Salesforce org
         run: |
@@ -54,12 +52,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch prompt and runner from llm-sfdc-gh
+      - name: Clone llm-sfdc-gh and install runner dependencies
         run: |
-          gh api repos/0cv/llm-sfdc-gh/contents/prompts/fix-error.md \
-            --jq '.content' | base64 -d > /tmp/fix-error.md
-          gh api repos/0cv/llm-sfdc-gh/contents/src/runner/fix-from-error.ts \
-            --jq '.content' | base64 -d > /tmp/fix-from-error.ts
+          gh repo clone 0cv/llm-sfdc-gh /tmp/llm-sfdc-gh -- --depth 1
+          cd /tmp/llm-sfdc-gh && npm install
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -73,6 +69,4 @@ jobs:
           STACK_TRACE: ${{ inputs.stackTrace }}
           RAW_BODY: ${{ inputs.rawBody }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo '{"type":"module"}' > /tmp/package.json
-          npx tsx /tmp/fix-from-error.ts
+        run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-error.ts

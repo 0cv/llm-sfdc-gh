@@ -40,9 +40,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: |
-          npm install -g @salesforce/cli
-          npm install @anthropic-ai/claude-agent-sdk @anthropic-ai/sdk pino dotenv
+        run: npm install -g @salesforce/cli
 
       - name: Authenticate Salesforce org
         run: |
@@ -55,12 +53,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch prompt and runner from llm-sfdc-gh
+      - name: Clone llm-sfdc-gh and install runner dependencies
         run: |
-          gh api repos/0cv/llm-sfdc-gh/contents/prompts/iterate-review.md \
-            --jq '.content' | base64 -d > /tmp/iterate-review.md
-          gh api repos/0cv/llm-sfdc-gh/contents/src/runner/iterate-from-review.ts \
-            --jq '.content' | base64 -d > /tmp/iterate-from-review.ts
+          gh repo clone 0cv/llm-sfdc-gh /tmp/llm-sfdc-gh -- --depth 1
+          cd /tmp/llm-sfdc-gh && npm install
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,6 +68,4 @@ jobs:
           COMMENT_BODY: ${{ inputs.commentBody }}
           COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo '{"type":"module"}' > /tmp/package.json
-          npx tsx /tmp/iterate-from-review.ts
+        run: npx tsx /tmp/llm-sfdc-gh/src/runner/iterate-from-review.ts
