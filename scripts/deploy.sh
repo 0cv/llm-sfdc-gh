@@ -29,8 +29,8 @@ CLOUD_RUN_VARS=(
   GMAIL_REFRESH_TOKEN
   GMAIL_PUBSUB_TOPIC
   GITHUB_TOKEN
-  GITHUB_WEBHOOK_SECRET
   ADMIN_SECRET
+  ANTHROPIC_AUTH_TOKEN
 )
 
 env_string=""
@@ -95,7 +95,7 @@ if gcloud scheduler jobs describe "$SCHEDULER_JOB" --location "$REGION" --projec
     --schedule "0 6 * * *" \
     --uri "${CLOUD_RUN_URL}/admin/renew-watch" \
     --http-method POST \
-    --headers "Authorization=Bearer ${ADMIN_SECRET}"
+    --update-headers "Authorization=Bearer ${ADMIN_SECRET}"
 else
   echo "Creating Cloud Scheduler job (daily at 06:00 UTC)..."
   gcloud scheduler jobs create http "$SCHEDULER_JOB" \

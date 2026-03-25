@@ -8,7 +8,6 @@
 
 import type { Request, Response } from "express";
 import { google } from "googleapis";
-import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { parseSalesforceExceptionEmail } from "../email/parser.js";
 import { isDuplicate } from "../dedup/index.js";
