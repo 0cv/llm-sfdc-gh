@@ -1,0 +1,75 @@
+name: Iterate on PR Review
+
+on:
+  workflow_call:
+    inputs:
+      prNumber:
+        type: string
+        required: true
+      prTitle:
+        type: string
+      commentBody:
+        type: string
+        required: true
+      commentAuthor:
+        type: string
+      prBranch:
+        type: string
+        required: true
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      SF_AUTH_URL:
+        required: true
+
+jobs:
+  iterate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.prBranch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install -g @salesforce/cli
+          npm install @anthropic-ai/claude-agent-sdk @anthropic-ai/sdk pino dotenv
+
+      - name: Authenticate Salesforce org
+        run: |
+          echo "${{ secrets.SF_AUTH_URL }}" > /tmp/sf-auth.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/sf-auth.txt --alias pipeline-org --set-default
+          rm /tmp/sf-auth.txt
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch prompt and runner from llm-sfdc-gh
+        run: |
+          gh api repos/0cv/llm-sfdc-gh/contents/prompts/iterate-review.md \
+            --jq '.content' | base64 -d > /tmp/iterate-review.md
+          gh api repos/0cv/llm-sfdc-gh/contents/src/runner/iterate-from-review.ts \
+            --jq '.content' | base64 -d > /tmp/iterate-from-review.ts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Claude iterate session
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ inputs.prNumber }}
+          PR_TITLE: ${{ inputs.prTitle }}
+          COMMENT_BODY: ${{ inputs.commentBody }}
+          COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tsx /tmp/iterate-from-review.ts
