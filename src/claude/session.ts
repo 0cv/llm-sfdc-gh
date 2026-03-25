@@ -64,6 +64,8 @@ export async function runClaudeSession(
           "Grep",
         ],
         cwd: process.cwd(),
+        // Load CLAUDE.md and project settings from the SF repo (defaults to [] in 0.1+)
+        settingSources: ["project"],
       },
     })) {
       if (message.type === "assistant") {

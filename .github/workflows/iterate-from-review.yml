@@ -17,7 +17,7 @@ on:
         type: string
         required: true
     secrets:
-      ANTHROPIC_AUTH_TOKEN:
+      CLAUDE_CODE_OAUTH_TOKEN:
         required: true
       SF_AUTH_URL:
         required: true
@@ -62,7 +62,7 @@ jobs:
 
       - name: Run Claude iterate session
         env:
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           PR_NUMBER: ${{ inputs.prNumber }}
           PR_TITLE: ${{ inputs.prTitle }}
           COMMENT_BODY: ${{ inputs.commentBody }}

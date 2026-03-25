@@ -30,12 +30,12 @@ CLOUD_RUN_VARS=(
   GMAIL_PUBSUB_TOPIC
   GITHUB_TOKEN
   ADMIN_SECRET
-  ANTHROPIC_AUTH_TOKEN
+  CLAUDE_CODE_OAUTH_TOKEN
 )
 
 env_string=""
 for var in "${CLOUD_RUN_VARS[@]}"; do
-  value=$(grep -E "^${var}=" "$ENV_FILE" | cut -d= -f2- | tr -d '\r')
+  value=$(grep -E "^${var}=" "$ENV_FILE" | cut -d= -f2- | tr -d '\r') || true
   if [[ -z "$value" || "$value" == your-* || "$value" == ghp_... ]]; then
     echo "Warning: $var is not set or still has placeholder value"
     continue

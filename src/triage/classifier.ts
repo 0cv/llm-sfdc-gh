@@ -35,9 +35,9 @@ Respond in JSON format only:
 export async function triageError(
   error: SalesforceError
 ): Promise<TriageResult> {
-  const authToken = process.env.ANTHROPIC_AUTH_TOKEN;
+  const authToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
   if (!authToken) {
-    logger.info("No ANTHROPIC_AUTH_TOKEN — skipping triage, assuming code bug");
+    logger.info("No CLAUDE_CODE_OAUTH_TOKEN — skipping triage, assuming code bug");
     return { isCodeBug: true, confidence: "low", reason: "Triage skipped (no auth token)" };
   }
 
