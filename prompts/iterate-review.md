@@ -2,15 +2,27 @@ A developer has left feedback on a pull request that was created by Claude. Your
 
 ## PR #{{PR_NUMBER}}: {{PR_TITLE}}
 
-**Reviewer:** {{COMMENT_AUTHOR}}
-**Comment type:** {{COMMENT_TYPE}}
+---
 
-### Feedback:
+## Context & History
+
+The following is the full conversation history for this PR, including any linked issue, prior reviews, and discussion. Use it to understand what has already been tried and discussed — do not re-do work already done.
+
+{{PR_CONTEXT}}
+
+---
+
+## ⚡ New Feedback to Address
+
+**Reviewer:** {{COMMENT_AUTHOR}}
+
 {{COMMENT_BODY}}
+
+---
 
 ## Instructions
 
-1. **Understand the feedback**: Read the reviewer's comment carefully.
+1. **Understand the feedback**: Read the new feedback carefully in light of the conversation history above. Do not re-open issues that were already resolved.
 
 2. **Check out the PR branch**:
    ```bash

@@ -10,7 +10,6 @@ on:
         type: string
       commentBody:
         type: string
-        required: true
       commentAuthor:
         type: string
       prBranch:

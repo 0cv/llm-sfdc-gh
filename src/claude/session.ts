@@ -31,11 +31,12 @@ async function loadPrompt(name: string, vars: Record<string, string>): Promise<s
  */
 export async function runClaudeSession(
   promptName: string,
-  vars: Record<string, string>
+  vars: Record<string, string>,
+  model?: string
 ): Promise<SessionResult> {
   const prompt = await loadPrompt(promptName, vars);
 
-  logger.info({ promptName }, "Starting Claude session");
+  logger.info({ promptName, model }, "Starting Claude session");
 
   let lastAssistantText = "";
   let branchName: string | null = null;
@@ -45,6 +46,7 @@ export async function runClaudeSession(
     for await (const message of query({
       prompt,
       options: {
+        model,
         maxTurns: parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
         allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
         cwd: process.cwd(),

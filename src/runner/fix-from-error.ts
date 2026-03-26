@@ -4,6 +4,7 @@
  */
 
 import { runClaudeSession } from "../claude/session.js";
+import { pickModel } from "../claude/complexity.js";
 import { logger } from "../utils/logger.js";
 
 const {
@@ -20,15 +21,23 @@ if (!EXCEPTION_TYPE || !APEX_CLASS) {
   process.exit(1);
 }
 
-const result = await runClaudeSession("fix-error", {
-  EXCEPTION_TYPE,
-  ERROR_MESSAGE,
-  APEX_CLASS,
-  LINE_NUMBER,
-  STACK_TRACE,
-  RAW_EMAIL: RAW_BODY,
-  SF_TARGET_ORG: "pipeline-org",
-});
+const model = await pickModel(
+  `Fix Salesforce error: ${EXCEPTION_TYPE} in ${APEX_CLASS} line ${LINE_NUMBER}\n${ERROR_MESSAGE}\n${STACK_TRACE}`
+);
+
+const result = await runClaudeSession(
+  "fix-error",
+  {
+    EXCEPTION_TYPE,
+    ERROR_MESSAGE,
+    APEX_CLASS,
+    LINE_NUMBER,
+    STACK_TRACE,
+    RAW_EMAIL: RAW_BODY,
+    SF_TARGET_ORG: "pipeline-org",
+  },
+  model
+);
 
 if (result.success && result.prUrl) {
   logger.info({ prUrl: result.prUrl }, "PR created successfully");
