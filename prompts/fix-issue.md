@@ -1,5 +1,7 @@
 A GitHub issue has been created requesting a code fix. Your job is to understand the issue, implement the fix, write tests, and create a pull request.
 
+**Repository:** {{REPO_FULL_NAME}}
+
 ## Issue #{{ISSUE_NUMBER}}: {{ISSUE_TITLE}}
 
 {{ISSUE_BODY}}

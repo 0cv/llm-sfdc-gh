@@ -6,6 +6,9 @@ import { runClaudeSession } from "../claude/session.js";
 import { pickModel } from "../claude/complexity.js";
 import { buildPrContext } from "../github/context.js";
 import { logger } from "../utils/logger.js";
+import { requireEnv } from "./base.js";
+
+requireEnv("PR_NUMBER", "GITHUB_REPOSITORY");
 
 const {
   PR_NUMBER = "",
@@ -15,18 +18,13 @@ const {
   GITHUB_REPOSITORY = "",
 } = process.env;
 
-if (!PR_NUMBER || !GITHUB_REPOSITORY) {
-  logger.error("Missing required environment variables: PR_NUMBER, GITHUB_REPOSITORY");
-  process.exit(1);
-}
-
 // Build full PR context: linked issue → PR description → review history → conversation
 const prContext = buildPrContext(GITHUB_REPOSITORY, PR_NUMBER);
 
 // COMMENT_BODY is the triggering event (may be empty if review had no summary text).
 // The inline comments are already captured in prContext via the reviews API.
 // We only fail if there is genuinely no feedback at all.
-if (!COMMENT_BODY && !prContext) {
+if (!COMMENT_BODY && !prContext.trim()) {
   logger.error("No review feedback found");
   process.exit(1);
 }

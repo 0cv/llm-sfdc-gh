@@ -1,21 +1,37 @@
-A Salesforce production exception has occurred. Your job is to diagnose the root cause, fix the code, write or update unit tests, verify the fix, and create a pull request.
+A Salesforce production error email has arrived. Your job is to diagnose the root cause, fix the code, write or update unit tests, verify the fix, and create a pull request.
 
-## Error Details
+## Raw Error Email
 
+**Subject:** {{EMAIL_SUBJECT}}
+
+**Body:**
+```
+{{RAW_BODY}}
+```
+
+---
+
+## Pre-parsed Fields (auto-extracted — verify against the raw email above)
+
+- **Org:** {{ORG_NAME}}
 - **Exception type:** {{EXCEPTION_TYPE}}
 - **Message:** {{ERROR_MESSAGE}}
-- **Apex class/trigger:** {{APEX_CLASS}}
-- **Line number:** {{LINE_NUMBER}}
+- **Entry trigger:** {{TRIGGER_NAME}} ({{TRIGGER_OPERATION}})
+- **Root cause class:** {{APEX_CLASS}} line {{LINE_NUMBER}}
 - **Stack trace:**
 ```
 {{STACK_TRACE}}
 ```
 
+If any pre-parsed field looks wrong, trust the raw email over these values.
+
+---
+
 ## Instructions
 
-Work through these steps in order. Do not read files unrelated to `{{APEX_CLASS}}`.
+Work through these steps in order.
 
-1. **Diagnose**: Read only `{{APEX_CLASS}}.cls` and its test file. Understand what caused `{{EXCEPTION_TYPE}}` at line {{LINE_NUMBER}}.
+1. **Diagnose**: Read `{{APEX_CLASS}}.cls` (or the flow/trigger identified above) and its test file. Understand the root cause from the raw email.
 
 2. **Fix**: Make the minimal code change to fix the root cause. Do not refactor unrelated code.
 
@@ -54,10 +70,4 @@ Work through these steps in order. Do not read files unrelated to `{{APEX_CLASS}
    gh pr create --title "fix: {{EXCEPTION_TYPE}} in {{APEX_CLASS}}" --body "## Root Cause\n<explain>\n\n## Fix\n<explain>\n\n## Test Coverage\n<explain>\n\nAutomated fix by Claude from production exception email."
    ```
 
-**Important**: Do not explore the codebase beyond what is needed for steps 1-3. Every file read costs a turn.
-
-## Raw Email
-
-```
-{{RAW_EMAIL}}
-```
+**Important**: Do not explore the codebase beyond what is needed for steps 1–3. Every file read costs a turn.

@@ -21,13 +21,16 @@ export async function dispatchSalesforceError(
     body: JSON.stringify({
       event_type: "salesforce-error",
       client_payload: {
+        subject: error.subject,
+        orgName: error.orgName,
         exceptionType: error.exceptionType,
         errorMessage: error.message,
         apexClass: error.apexClass ?? "",
+        triggerName: error.triggerName ?? "",
+        triggerOperation: error.triggerOperation ?? "",
         lineNumber: String(error.lineNumber ?? ""),
         stackTrace: error.stackTrace,
         rawBody: error.rawBody,
-        fingerprint: error.fingerprint,
       },
     }),
   });

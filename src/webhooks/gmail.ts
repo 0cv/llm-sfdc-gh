@@ -21,7 +21,7 @@ let lastHistoryId: string | null = null;
 
 // Routing table: +tag → GitHub repo (e.g. "dropbox" → "0cv/dropbox-dev")
 let routing: Record<string, string> = {};
-readFile(new URL("../../../routing.json", import.meta.url), "utf-8")
+readFile(new URL("../../routing.json", import.meta.url), "utf-8")
   .then((raw) => {
     routing = JSON.parse(raw);
   })

@@ -5,21 +5,23 @@
 
 import { runClaudeSession } from "../claude/session.js";
 import { pickModel } from "../claude/complexity.js";
+import { requireEnv } from "./base.js";
 import { logger } from "../utils/logger.js";
 
+requireEnv("EXCEPTION_TYPE", "APEX_CLASS");
+
 const {
+  EMAIL_SUBJECT = "",
+  ORG_NAME = "",
   EXCEPTION_TYPE = "",
   ERROR_MESSAGE = "",
   APEX_CLASS = "",
+  TRIGGER_NAME = "",
+  TRIGGER_OPERATION = "",
   LINE_NUMBER = "",
   STACK_TRACE = "",
   RAW_BODY = "",
 } = process.env;
-
-if (!EXCEPTION_TYPE || !APEX_CLASS) {
-  logger.error("Missing required environment variables: EXCEPTION_TYPE, APEX_CLASS");
-  process.exit(1);
-}
 
 const model = await pickModel(
   `Fix Salesforce error: ${EXCEPTION_TYPE} in ${APEX_CLASS} line ${LINE_NUMBER}\n${ERROR_MESSAGE}\n${STACK_TRACE}`
@@ -28,12 +30,16 @@ const model = await pickModel(
 const result = await runClaudeSession(
   "fix-error",
   {
+    EMAIL_SUBJECT,
+    ORG_NAME,
     EXCEPTION_TYPE,
     ERROR_MESSAGE,
     APEX_CLASS,
+    TRIGGER_NAME,
+    TRIGGER_OPERATION,
     LINE_NUMBER,
     STACK_TRACE,
-    RAW_EMAIL: RAW_BODY,
+    RAW_BODY,
     SF_TARGET_ORG: "pipeline-org",
   },
   model

@@ -53,9 +53,13 @@ jobs:
   fix:
     uses: ${LLMREPO}/.github/workflows/fix-from-error.yml@main
     with:
+      subject: \${{ github.event.client_payload.subject }}
+      orgName: \${{ github.event.client_payload.orgName }}
       exceptionType: \${{ github.event.client_payload.exceptionType }}
       errorMessage: \${{ github.event.client_payload.errorMessage }}
       apexClass: \${{ github.event.client_payload.apexClass }}
+      triggerName: \${{ github.event.client_payload.triggerName }}
+      triggerOperation: \${{ github.event.client_payload.triggerOperation }}
       lineNumber: \${{ github.event.client_payload.lineNumber }}
       stackTrace: \${{ github.event.client_payload.stackTrace }}
       rawBody: \${{ github.event.client_payload.rawBody }}

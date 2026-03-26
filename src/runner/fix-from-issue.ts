@@ -4,14 +4,12 @@
 
 import { runClaudeSession } from "../claude/session.js";
 import { pickModel } from "../claude/complexity.js";
+import { requireEnv } from "./base.js";
 import { logger } from "../utils/logger.js";
 
-const { ISSUE_NUMBER = "", ISSUE_TITLE = "", ISSUE_BODY = "" } = process.env;
+requireEnv("ISSUE_NUMBER", "ISSUE_TITLE");
 
-if (!ISSUE_NUMBER || !ISSUE_TITLE) {
-  logger.error("Missing required environment variables: ISSUE_NUMBER, ISSUE_TITLE");
-  process.exit(1);
-}
+const { ISSUE_NUMBER = "", ISSUE_TITLE = "", ISSUE_BODY = "" } = process.env;
 
 const model = await pickModel(`Fix GitHub issue: ${ISSUE_TITLE}\n\n${ISSUE_BODY}`);
 
