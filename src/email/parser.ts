@@ -90,8 +90,6 @@ function parseFlowError(subject: string, body: string): SalesforceError | null {
   // No stack trace for flows — use the decision/element trail from the body
   const stackTrace = `Flow: ${flowLabel} (${flowApiName})\nFailed element: ${errorElement} (${elementType})\n${message}`;
 
-  const fingerprint = createFingerprint(exceptionType, apexClass, null);
-
   return {
     subject,
     orgName,
@@ -103,8 +101,22 @@ function parseFlowError(subject: string, body: string): SalesforceError | null {
     apexClass,
     lineNumber: null,
     rawBody: body,
-    fingerprint,
+    fingerprint: createFingerprint(subject, body),
   };
+}
+
+function createFingerprint(subject: string, body: string): string {
+  // Strip the Salesforce user ID (005xxxxxxx) from "user/organization: <userId>/<orgId>"
+  // so the same error triggered by different users produces the same fingerprint.
+  const normalized = body.replace(/(?<=user\/organization:\s*)\w+(?=\/)/, "<user>");
+  const raw = subject + "\n" + normalized;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
 }
 
 function parseApexError(subject: string, body: string): SalesforceError | null {
@@ -152,8 +164,6 @@ function parseApexError(subject: string, body: string): SalesforceError | null {
   const lineMatch = firstFrame.match(/line (\d+)/);
   const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
 
-  const fingerprint = createFingerprint(exceptionType, apexClass, lineNumber);
-
   return {
     subject,
     orgName,
@@ -165,21 +175,6 @@ function parseApexError(subject: string, body: string): SalesforceError | null {
     apexClass,
     lineNumber,
     rawBody: body,
-    fingerprint,
+    fingerprint: createFingerprint(subject, body),
   };
-}
-
-function createFingerprint(
-  exceptionType: string,
-  apexClass: string | null,
-  lineNumber: number | null
-): string {
-  const raw = `${exceptionType}:${apexClass ?? ""}:${lineNumber ?? ""}`;
-  let hash = 0;
-  for (let i = 0; i < raw.length; i++) {
-    const char = raw.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(36);
 }
