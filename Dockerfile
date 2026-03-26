@@ -10,8 +10,8 @@ COPY prompts/ ./prompts/
 COPY routing.json ./
 COPY tsconfig.json ./
 
-# Install tsx for running TypeScript directly (avoids build step complexity)
-RUN npm install -g tsx
+# Install tsx and Claude Code CLI
+RUN npm install -g tsx @anthropic-ai/claude-code
 
 EXPOSE 8080
 ENV PORT=8080

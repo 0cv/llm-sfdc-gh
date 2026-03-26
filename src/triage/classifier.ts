@@ -1,9 +1,11 @@
 /**
  * Lightweight triage using Claude Haiku to determine if an error
  * is a code bug (worth fixing) vs. operational noise (skip).
+ *
+ * Uses query() (agent SDK / claude CLI) so CLAUDE_CODE_OAUTH_TOKEN is handled correctly.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SalesforceError } from "../email/parser.js";
 import { logger } from "../utils/logger.js";
 
@@ -12,6 +14,8 @@ export interface TriageResult {
   confidence: "high" | "medium" | "low";
   reason: string;
 }
+
+const FALLBACK: TriageResult = { isCodeBug: true, confidence: "low", reason: "Triage skipped" };
 
 const TRIAGE_PROMPT = `You are a Salesforce error triage system. Classify the following exception as either a CODE_BUG (requires a code fix) or OPERATIONAL (transient/environmental, no code fix needed).
 
@@ -30,36 +34,46 @@ Examples of CODE_BUG (fix these):
 - Unhandled exceptions in triggers/classes
 
 Respond in JSON format only:
-{"isCodeBug": true/false, "confidence": "high/medium/low", "reason": "brief explanation"}`;
+{"isCodeBug": true/false, "confidence": "high/medium/low", "reason": "brief explanation"}
+
+`;
 
 export async function triageError(error: SalesforceError): Promise<TriageResult> {
-  const authToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
-  if (!authToken) {
+  if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) {
     logger.info("No CLAUDE_CODE_OAUTH_TOKEN — skipping triage, assuming code bug");
-    return { isCodeBug: true, confidence: "low", reason: "Triage skipped (no auth token)" };
+    return FALLBACK;
   }
 
   try {
-    const anthropic = new Anthropic({ authToken });
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 200,
-      messages: [
-        {
-          role: "user",
-          content: `${TRIAGE_PROMPT}\n\nException type: ${error.exceptionType}\nMessage: ${error.message}\nClass: ${error.apexClass ?? "unknown"}\nStack trace:\n${error.stackTrace}`,
-        },
-      ],
-    });
+    let responseText = "";
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
-    const result = JSON.parse(text) as TriageResult;
+    for await (const message of query({
+      prompt:
+        TRIAGE_PROMPT +
+        `Exception type: ${error.exceptionType}\nMessage: ${error.message}\nClass: ${error.apexClass ?? "unknown"}\nStack trace:\n${error.stackTrace}`,
+      options: {
+        model: "claude-haiku-4-5-20251001",
+        maxTurns: 1,
+        allowedTools: [],
+        settingSources: [],
+      },
+    })) {
+      if (message.type === "assistant") {
+        for (const block of message.message.content) {
+          if (block.type === "text") responseText = block.text;
+        }
+      }
+    }
 
+    // Extract JSON even if Claude wraps it in markdown fences
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error(`Unexpected triage response: ${responseText}`);
+
+    const result = JSON.parse(jsonMatch[0]) as TriageResult;
     logger.info(
       { isCodeBug: result.isCodeBug, confidence: result.confidence, reason: result.reason },
       "Triage result"
     );
-
     return result;
   } catch (err) {
     logger.error(err, "Triage failed, defaulting to code bug");
