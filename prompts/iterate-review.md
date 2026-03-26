@@ -36,6 +36,23 @@ The following is the full conversation history for this PR, including any linked
 
 4. **Address the feedback**: Make the requested changes. If the feedback is unclear, make your best judgment and explain your reasoning in the commit message.
 
+   Before creating any new Salesforce metadata (custom objects, custom fields, Apex classes):
+
+   a. **Check naming conventions** — if `CLAUDE.md` exists at the repo root, it has the conventions already. Otherwise detect the suffix/prefix from existing class names (e.g. `AccountHandlerMVN.cls` → suffix `MVN`). Apply the same pattern to anything you create.
+
+   b. **Search the org by label**, not just by API name — the object may exist under a different name than expected:
+   ```bash
+   sf data query \
+     --query "SELECT QualifiedApiName, Label FROM EntityDefinition WHERE (Label LIKE '%<keyword>%' OR QualifiedApiName LIKE '%<keyword>%') AND QualifiedApiName LIKE '%__c'" \
+     --target-org {{SF_TARGET_ORG}} --use-tooling-api
+   ```
+   An "Error Log" object could be `Error_Log_MVN__c`, `ApexLog__c`, `Exception_Log__c` — use judgment.
+
+   c. **If found in the org**, retrieve it before modifying — do not recreate from scratch:
+   ```bash
+   sf project retrieve start --metadata "CustomObject:<ApiName>" --target-org {{SF_TARGET_ORG}}
+   ```
+
 5. **Test**: Run the tests to make sure everything still passes:
    ```bash
    sf project deploy start --source-dir force-app --target-org {{SF_TARGET_ORG}} --wait 10

@@ -162,6 +162,19 @@ jobs:
     secrets: inherit
 "
 
+# ── init-repo.yml ────────────────────────────────────────────────────────────
+# Manually triggered once per repo to generate CLAUDE.md with org conventions.
+push_workflow "init-repo.yml" "name: Init Repo (generate CLAUDE.md)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  init:
+    uses: ${LLMREPO}/.github/workflows/init-repo.yml@main
+    secrets: inherit
+"
+
 # ── Create claude-fix label ──────────────────────────────────────────────────
 gh label create "claude-fix" \
   --repo "$REPO" \

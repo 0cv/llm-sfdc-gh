@@ -1,22 +1,7 @@
-name: Fix Salesforce Error
+name: Init Repo (generate CLAUDE.md)
 
 on:
   workflow_call:
-    inputs:
-      exceptionType:
-        type: string
-        required: true
-      errorMessage:
-        type: string
-      apexClass:
-        type: string
-        required: true
-      lineNumber:
-        type: string
-      stackTrace:
-        type: string
-      rawBody:
-        type: string
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
@@ -24,12 +9,11 @@ on:
         required: true
 
 jobs:
-  fix:
+  init:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -59,14 +43,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Claude fix session
+      - name: Run Claude init session
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          EXCEPTION_TYPE: ${{ inputs.exceptionType }}
-          ERROR_MESSAGE: ${{ inputs.errorMessage }}
-          APEX_CLASS: ${{ inputs.apexClass }}
-          LINE_NUMBER: ${{ inputs.lineNumber }}
-          STACK_TRACE: ${{ inputs.stackTrace }}
-          RAW_BODY: ${{ inputs.rawBody }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-error.ts
+        run: npx tsx /tmp/llm-sfdc-gh/src/runner/init-repo.ts
