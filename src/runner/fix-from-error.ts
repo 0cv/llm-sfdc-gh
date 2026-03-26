@@ -8,7 +8,7 @@ import { pickModel } from "../claude/complexity.js";
 import { requireEnv } from "./base.js";
 import { logger } from "../utils/logger.js";
 
-requireEnv("EXCEPTION_TYPE", "APEX_CLASS");
+requireEnv("EXCEPTION_TYPE");
 
 const {
   EMAIL_SUBJECT = "",
