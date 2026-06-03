@@ -5,11 +5,26 @@
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import type { SalesforceError } from "../email/parser.js";
+import { findOpenPullRequestByTitle } from "./pulls.js";
+
+export function fixPullRequestTitle(error: SalesforceError): string {
+  return `fix: ${error.exceptionType} in ${error.apexClass ?? error.triggerName ?? "Unknown"}`;
+}
 
 export async function dispatchSalesforceError(
   error: SalesforceError,
   targetRepo: string
 ): Promise<void> {
+  const prTitle = fixPullRequestTitle(error);
+  const existingPr = await findOpenPullRequestByTitle(targetRepo, prTitle);
+  if (existingPr) {
+    logger.info(
+      { targetRepo, title: prTitle, pr: existingPr.url },
+      "Open PR already exists for this error, skipping dispatch"
+    );
+    return;
+  }
+
   const response = await fetch(`https://api.github.com/repos/${targetRepo}/dispatches`, {
     method: "POST",
     headers: {
@@ -40,5 +55,8 @@ export async function dispatchSalesforceError(
     throw new Error(`GitHub dispatch failed: ${response.status} ${body}`);
   }
 
-  logger.info({ targetRepo, exceptionType: error.exceptionType }, "Dispatched to GitHub Actions");
+  logger.info(
+    { targetRepo, exceptionType: error.exceptionType, prTitle },
+    "Dispatched to GitHub Actions"
+  );
 }

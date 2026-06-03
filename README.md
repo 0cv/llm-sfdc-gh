@@ -30,6 +30,7 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │    → extract +tag from To: header                                     │
 │    → routing.json: "dropbox" → "0cv/dropbox-dev"                      │
 │    → dedup (skip if same error seen in last 24h)                      │
+│    → skip dispatch if an open PR already has the expected fix title   │
 │    → triage via Claude Haiku (skip operational noise)                 │
 │    → POST /repos/0cv/dropbox-dev/dispatches  (repository_dispatch)    │
 │                                                                       │
@@ -312,3 +313,5 @@ In each repo: Settings → Secrets → Actions
 6. **PR** — `git push` to a new branch + `gh pr create` with root cause, fix summary, and test coverage description.
 
 7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, and pushes.
+
+Duplicate error emails are suppressed when an open PR already exists with the deterministic title `fix: <ExceptionType> in <ApexClassOrFlow>`. This keeps repeated Salesforce emails from opening multiple PRs for the same active fix.

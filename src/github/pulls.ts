@@ -6,8 +6,59 @@ interface PullRequest {
   body: string | null;
 }
 
+interface PullRequestListItem {
+  number: number;
+  title: string;
+  html_url: string;
+}
+
 function githubToken(): string | undefined {
   return process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+}
+
+export interface OpenPullRequestMatch {
+  number: number;
+  title: string;
+  url: string;
+}
+
+export async function findOpenPullRequestByTitle(
+  repo: string,
+  title: string
+): Promise<OpenPullRequestMatch | null> {
+  const token = githubToken();
+  if (!repo || !title || !token) {
+    logger.warn({ repo, title }, "Skipping PR title lookup; GitHub context is incomplete");
+    return null;
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`,
+    {
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${token}`,
+        "user-agent": "llm-sfdc-gh",
+        "x-github-api-version": API_VERSION,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    logger.warn({ repo, title, status: response.status, body }, "Failed to list open PRs");
+    return null;
+  }
+
+  const pulls = (await response.json()) as PullRequestListItem[];
+  const match = pulls.find((pull) => pull.title.trim() === title.trim());
+  if (!match) return null;
+
+  return {
+    number: match.number,
+    title: match.title,
+    url: match.html_url,
+  };
 }
 
 export async function getPullRequestBody(repo: string, prNumber: string): Promise<string | null> {
