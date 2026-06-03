@@ -2,7 +2,7 @@
 
 Automated Salesforce error fixing pipeline powered by Claude. When a Salesforce org throws an unhandled exception, this system receives the error email, diagnoses the root cause, fixes the code, runs tests, and opens a pull request — with no human involvement until the PR review.
 
-Developers review the PR, leave feedback, and Claude iterates. GitHub Issues labeled `claude-fix` also trigger the same fix pipeline.
+Developers review the PR, leave feedback, and Claude iterates. GitHub Issues labeled `claude-fix` also trigger the same fix pipeline. GitHub Issues labeled `claude-plan` trigger a plan-only workflow that comments an implementation plan without changing code.
 
 ---
 
@@ -54,6 +54,9 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │  fix-from-issue.yml  ← triggered natively when "claude-fix" label added│
 │    → same fix flow, sourced from issue body instead of email          │
 │                                                                       │
+│  plan-from-issue.yml ← triggered natively when "claude-plan" is added │
+│    → reads relevant files and comments a plan; no code changes        │
+│                                                                       │
 │  iterate-from-review.yml  ← triggered natively by PR review / comment │
 │    → Claude reads feedback, updates code, pushes to same branch       │
 └───────────────────────────────────────────────────────────────────────┘
@@ -81,11 +84,13 @@ To onboard a new org: add a line to `routing.json`, redeploy Cloud Run, and conf
 .github/workflows/                      Reusable workflows (called from SF repos)
   fix-from-error.yml       on: workflow_call — error email → Claude fix → PR
   fix-from-issue.yml       on: workflow_call — GitHub issue → Claude fix → PR
+  plan-from-issue.yml      on: workflow_call — GitHub issue → Claude plan comment
   iterate-from-review.yml  on: workflow_call — PR feedback → Claude iterates
 
 prompts/
   fix-error.md             Claude prompt: diagnose + fix from exception email
   fix-issue.md             Claude prompt: fix from GitHub issue
+  plan-issue.md            Claude prompt: plan from GitHub issue without edits
   iterate-review.md        Claude prompt: iterate on PR review feedback
   triage.md                Claude prompt: classify bug vs. operational noise
 
@@ -116,6 +121,7 @@ src/
   runner/
     fix-from-error.ts      Entry point for fix-from-error workflow (fetched by GA)
     fix-from-issue.ts      Entry point for fix-from-issue workflow (fetched by GA)
+    plan-from-issue.ts     Entry point for plan-from-issue workflow (fetched by GA)
     iterate-from-review.ts Entry point for iterate-from-review workflow (fetched by GA)
 
 routing.json               +tag → GitHub repo mapping
@@ -220,9 +226,10 @@ This is the only manual step after deployment. Cloud Scheduler handles all subse
 ./scripts/install-workflows.sh owner/repo
 ```
 
-Creates (or updates) three workflow files in the target repo's `.github/workflows/`:
+Creates (or updates) four workflow files in the target repo's `.github/workflows/`:
 - `fix-from-error.yml` — triggers on `repository_dispatch: [salesforce-error]`
 - `fix-from-issue.yml` — triggers natively when an issue is labeled `claude-fix`
+- `plan-from-issue.yml` — triggers natively when an issue is labeled `claude-plan`
 - `iterate-from-review.yml` — triggers natively on PR review or PR comment
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
@@ -313,5 +320,7 @@ In each repo: Settings → Secrets → Actions
 6. **PR** — `git push` to a new branch + `gh pr create` with root cause, fix summary, and test coverage description.
 
 7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, and pushes.
+
+8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant files using read-only tools and posts an implementation plan as an issue comment. It does not create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
 
 Duplicate error emails are suppressed when an open PR already exists with the deterministic title `fix: <ExceptionType> in <ApexClassOrFlow>`. This keeps repeated Salesforce emails from opening multiple PRs for the same active fix.

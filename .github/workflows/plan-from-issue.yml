@@ -1,0 +1,51 @@
+name: Plan from GitHub Issue
+
+on:
+  workflow_call:
+    inputs:
+      issueNumber:
+        type: string
+        required: true
+      issueTitle:
+        type: string
+        required: true
+      issueBody:
+        type: string
+      issueAuthor:
+        type: string
+        required: true
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Clone llm-sfdc-gh and install runner dependencies
+        run: |
+          gh repo clone 0cv/llm-sfdc-gh /tmp/llm-sfdc-gh -- --depth 1
+          cd /tmp/llm-sfdc-gh && npm install
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Claude plan session
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issueNumber }}
+          ISSUE_TITLE: ${{ inputs.issueTitle }}
+          ISSUE_BODY: ${{ inputs.issueBody }}
+          ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tsx /tmp/llm-sfdc-gh/src/runner/plan-from-issue.ts

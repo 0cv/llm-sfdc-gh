@@ -152,6 +152,71 @@ YAML
 )
 push_workflow "fix-from-issue.yml" "$(render_workflow "$fix_from_issue_workflow")"
 
+# ── plan-from-issue.yml ──────────────────────────────────────────────────────
+plan_from_issue_workflow=$(cat <<'YAML'
+name: Plan from GitHub Issue
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  mark-started:
+    if: github.event.label.name == 'claude-plan'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-in-progress" >/dev/null
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-ready" >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-failed" >/dev/null 2>&1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            -f body="Planning workflow is in progress: $RUN_URL" >/dev/null
+
+  plan:
+    needs: mark-started
+    if: github.event.label.name == 'claude-plan' && needs.mark-started.result == 'success'
+    uses: __LLMREPO__/.github/workflows/plan-from-issue.yml@main
+    with:
+      issueNumber: ${{ github.event.issue.number }}
+      issueTitle: ${{ github.event.issue.title }}
+      issueBody: ${{ github.event.issue.body }}
+      issueAuthor: ${{ github.event.issue.user.login }}
+    secrets: inherit
+
+  mark-finished:
+    needs: [mark-started, plan]
+    if: always() && github.event.label.name == 'claude-plan' && needs.mark-started.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-in-progress" >/dev/null 2>&1 || true
+
+          if [[ "$PLAN_RESULT" == "success" ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-failed" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-ready" >/dev/null
+          else
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-ready" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-failed" >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+              -f body="Planning workflow failed: $RUN_URL" >/dev/null
+          fi
+YAML
+)
+push_workflow "plan-from-issue.yml" "$(render_workflow "$plan_from_issue_workflow")"
+
 # ── iterate-from-review.yml ──────────────────────────────────────────────────
 iterate_from_review_workflow=$(cat <<'YAML'
 name: Iterate on PR Review
@@ -378,6 +443,10 @@ ensure_label "claude-fix-in-progress" "fbca04" "Claude fix workflow is currently
 ensure_label "claude-fix-ready" "0e8a16" "Claude opened or updated a fix PR"
 ensure_label "claude-fix-failed" "b60205" "Claude fix workflow failed"
 ensure_label "claude-fix-needs-info" "d4c5f9" "Claude asked the issue author for clarification"
+ensure_label "claude-plan" "1d76db" "Ask Claude to draft an implementation plan only"
+ensure_label "claude-plan-in-progress" "fbca04" "Claude planning workflow is currently running"
+ensure_label "claude-plan-ready" "0e8a16" "Claude posted an implementation plan"
+ensure_label "claude-plan-failed" "b60205" "Claude planning workflow failed"
 
 echo "Done. Workflows installed in $REPO/.github/workflows/"
 echo ""

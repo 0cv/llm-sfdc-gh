@@ -14,6 +14,12 @@ export interface SessionResult {
   prUrl: string | null;
 }
 
+interface ClaudeSessionOptions {
+  allowedTools?: string[];
+  maxTurns?: number;
+  summaryMaxChars?: number;
+}
+
 /**
  * Load a prompt template from the prompts/ directory and interpolate variables.
  */
@@ -32,7 +38,8 @@ async function loadPrompt(name: string, vars: Record<string, string>): Promise<s
 export async function runClaudeSession(
   promptName: string,
   vars: Record<string, string>,
-  model?: string
+  model?: string,
+  sessionOptions: ClaudeSessionOptions = {}
 ): Promise<SessionResult> {
   const prompt = await loadPrompt(promptName, vars);
 
@@ -47,8 +54,15 @@ export async function runClaudeSession(
       prompt,
       options: {
         model,
-        maxTurns: parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
-        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
+        maxTurns: sessionOptions.maxTurns ?? parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
+        allowedTools: sessionOptions.allowedTools ?? [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash",
+          "Glob",
+          "Grep",
+        ],
         cwd: process.cwd(),
         // Load CLAUDE.md and project settings from the SF repo (defaults to [] in 0.1+)
         settingSources: ["project"],
@@ -80,7 +94,7 @@ export async function runClaudeSession(
 
     return {
       success: true,
-      summary: lastAssistantText.slice(0, 500),
+      summary: lastAssistantText.slice(0, sessionOptions.summaryMaxChars ?? 500),
       branchName,
       prUrl,
     };
