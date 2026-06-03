@@ -247,6 +247,8 @@ In each repo: Settings → Secrets → Actions
 | `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
 | `GMAIL_REFRESH_TOKEN` | Obtained via `npm run auth-gmail` |
 | `GMAIL_PUBSUB_TOPIC` | `projects/<project-id>/topics/sf-errors` |
+| `GMAIL_FALLBACK_LOOKBACK_DAYS` | Recent Inbox window scanned when Gmail history state is missing or stale (default 1) |
+| `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Inbox messages scanned during fallback (default 25) |
 | `GITHUB_TOKEN` | PAT with `contents` + `pull-requests` write on all repos in `routing.json` |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |

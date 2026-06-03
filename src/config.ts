@@ -19,4 +19,6 @@ export const config = {
   githubToken: env.GITHUB_TOKEN || "",
 
   dedupTtlHours: parseInt(env.DEDUP_TTL_HOURS || "24"),
+  gmailFallbackLookbackDays: parseInt(env.GMAIL_FALLBACK_LOOKBACK_DAYS || "1"),
+  gmailFallbackMaxMessages: parseInt(env.GMAIL_FALLBACK_MAX_MESSAGES || "25"),
 } as const;

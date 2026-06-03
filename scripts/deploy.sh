@@ -33,6 +33,11 @@ CLOUD_RUN_VARS=(
   CLAUDE_CODE_OAUTH_TOKEN
 )
 
+OPTIONAL_CLOUD_RUN_VARS=(
+  GMAIL_FALLBACK_LOOKBACK_DAYS
+  GMAIL_FALLBACK_MAX_MESSAGES
+)
+
 env_string=""
 for var in "${CLOUD_RUN_VARS[@]}"; do
   value=$(grep -E "^${var}=" "$ENV_FILE" | cut -d= -f2- | tr -d '\r') || true
@@ -41,6 +46,13 @@ for var in "${CLOUD_RUN_VARS[@]}"; do
     continue
   fi
   env_string+="${var}=${value},"
+done
+
+for var in "${OPTIONAL_CLOUD_RUN_VARS[@]}"; do
+  value=$(grep -E "^${var}=" "$ENV_FILE" | cut -d= -f2- | tr -d '\r') || true
+  if [[ -n "$value" && "$value" != your-* ]]; then
+    env_string+="${var}=${value},"
+  fi
 done
 
 # Remove trailing comma
