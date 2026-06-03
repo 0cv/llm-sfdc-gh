@@ -1,4 +1,5 @@
 import { logger } from "../utils/logger.js";
+import { githubTokenForRepo } from "./token.js";
 
 const API_VERSION = "2022-11-28";
 
@@ -12,10 +13,6 @@ interface PullRequestListItem {
   html_url: string;
 }
 
-function githubToken(): string | undefined {
-  return process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-}
-
 export interface OpenPullRequestMatch {
   number: number;
   title: string;
@@ -26,7 +23,7 @@ export async function findOpenPullRequestByTitle(
   repo: string,
   title: string
 ): Promise<OpenPullRequestMatch | null> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !title || !token) {
     throw new Error("Cannot list open PRs; GitHub context is incomplete");
   }
@@ -61,7 +58,7 @@ export async function findOpenPullRequestByTitle(
 }
 
 export async function getPullRequestBody(repo: string, prNumber: string): Promise<string | null> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !prNumber || !token) {
     logger.warn({ repo, prNumber }, "Skipping PR fetch; GitHub context is incomplete");
     return null;
@@ -91,7 +88,7 @@ export async function updatePullRequestBody(
   prNumber: string,
   body: string
 ): Promise<void> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !prNumber || !token) {
     logger.warn({ repo, prNumber }, "Skipping PR update; GitHub context is incomplete");
     return;

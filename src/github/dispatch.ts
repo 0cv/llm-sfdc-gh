@@ -6,6 +6,7 @@ import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import type { SalesforceError } from "../email/parser.js";
 import { findOpenPullRequestByTitle } from "./pulls.js";
+import { githubTokenForRepo } from "./token.js";
 
 const recentDispatches = new Map<string, number>();
 
@@ -56,11 +57,16 @@ export async function dispatchSalesforceError(
       return;
     }
 
+    const token = githubTokenForRepo(targetRepo);
+    if (!token) {
+      throw new Error(`No GitHub token configured for ${targetRepo}`);
+    }
+
     const response = await fetch(`https://api.github.com/repos/${targetRepo}/dispatches`, {
       method: "POST",
       headers: {
         Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${config.githubToken}`,
+        Authorization: `Bearer ${token}`,
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json",
       },

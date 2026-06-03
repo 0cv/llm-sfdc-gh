@@ -56,6 +56,15 @@ for var in "${OPTIONAL_CLOUD_RUN_VARS[@]}"; do
   fi
 done
 
+while IFS= read -r line; do
+  var="${line%%=*}"
+  value="${line#*=}"
+
+  if [[ "$var" =~ ^GITHUB_TOKEN_[A-Z0-9_]+$ && -n "$value" && "$value" != your-* && "$value" != ghp_... ]]; then
+    env_string+="${var}=${value//$'\r'/},"
+  fi
+done <"$ENV_FILE"
+
 # Remove trailing comma
 env_string="${env_string%,}"
 

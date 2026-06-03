@@ -187,20 +187,21 @@ Add the output to `.env` as `ADMIN_SECRET`. This protects the `/admin/renew-watc
 
 ### 4. Generate a GitHub dispatch token
 
-Cloud Run uses `GITHUB_TOKEN` to call GitHub's `repository_dispatch` API for each target repo in `routing.json`.
+Cloud Run uses GitHub tokens to call GitHub's `repository_dispatch` API for each target repo in `routing.json`.
 
 Create a fine-grained personal access token at https://github.com/settings/personal-access-tokens/new:
 
-- Resource owner: the GitHub owner that contains the target repos, e.g. `0cv`
-- Repository access: select every repo listed in `routing.json`, e.g. `0cv/dropbox-dev`
+- Resource owner: the GitHub owner that contains the target repos, e.g. `0cv` or `komodohealth`
+- Repository access: select every repo for that owner listed in `routing.json`
 - Repository permissions:
   - `Contents` → `Read and write`
   - `Pull requests` → `Read-only`
 
-Add the generated token to `.env`:
+Add the generated token to `.env`. `GITHUB_TOKEN` is the default fallback. Komodo repos use `GITHUB_TOKEN_KOMODO` when present. Other owner-specific tokens can use `GITHUB_TOKEN_<OWNER>` with the owner uppercased and non-alphanumeric characters replaced by underscores.
 
 ```bash
 GITHUB_TOKEN=github_pat_...
+GITHUB_TOKEN_KOMODO=github_pat_...
 ```
 
 ### 5. Deploy Cloud Run
@@ -281,7 +282,9 @@ In each repo: Settings → Secrets → Actions
 | `GMAIL_FALLBACK_LOOKBACK_DAYS` | Recent Gmail window scanned when history state is missing or stale (default 1) |
 | `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Gmail messages scanned during fallback (default 5) |
 | `GMAIL_FALLBACK_MAX_AGE_MINUTES` | Maximum message age processed during fallback scans (default 10) |
-| `GITHUB_TOKEN` | Fine-grained PAT with `Contents: Read and write` and `Pull requests: Read-only` on all repos in `routing.json`; used for `repository_dispatch` and duplicate PR checks |
+| `GITHUB_TOKEN` | Default fine-grained PAT with `Contents: Read and write` and `Pull requests: Read-only`; used for `repository_dispatch` and duplicate PR checks when no owner-specific token is configured |
+| `GITHUB_TOKEN_KOMODO` | Optional Komodo-specific fine-grained PAT for `komodohealth/*` repos; used before `GITHUB_TOKEN` |
+| `GITHUB_TOKEN_<OWNER>` | Optional owner-specific PAT convention for other owners; `deploy.sh` forwards matching variables from `.env` to Cloud Run |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |
 

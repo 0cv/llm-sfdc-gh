@@ -1,4 +1,5 @@
 import { logger } from "../utils/logger.js";
+import { githubTokenForRepo } from "./token.js";
 
 const API_VERSION = "2022-11-28";
 
@@ -26,10 +27,6 @@ interface GitHubIssueComment {
   } | null;
 }
 
-function githubToken(): string | undefined {
-  return process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-}
-
 export function actionsRunUrl(): string | null {
   const serverUrl = process.env.GITHUB_SERVER_URL || "https://github.com";
   const repo = process.env.GITHUB_REPOSITORY;
@@ -44,7 +41,7 @@ export async function postIssueComment(
   issueNumber: string,
   body: string
 ): Promise<void> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !issueNumber || !token) {
     logger.warn({ repo, issueNumber }, "Skipping issue comment; GitHub context is incomplete");
     return;
@@ -78,7 +75,7 @@ export async function listIssueComments(
   repo: string,
   issueNumber: string
 ): Promise<IssueComment[]> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !issueNumber || !token) {
     logger.warn(
       { repo, issueNumber },
@@ -139,7 +136,7 @@ export async function updateIssueComment(
   commentId: number,
   body: string
 ): Promise<boolean> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !commentId || !token) {
     logger.warn({ repo, commentId }, "Skipping issue comment update; GitHub context is incomplete");
     return false;
@@ -177,7 +174,7 @@ export async function addIssueLabels(
   issueNumber: string,
   labels: string[]
 ): Promise<void> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !issueNumber || labels.length === 0 || !token) {
     logger.warn(
       { repo, issueNumber, labels },
@@ -215,7 +212,7 @@ export async function removeIssueLabel(
   issueNumber: string,
   label: string
 ): Promise<void> {
-  const token = githubToken();
+  const token = githubTokenForRepo(repo);
   if (!repo || !issueNumber || !label || !token) {
     logger.warn(
       { repo, issueNumber, label },

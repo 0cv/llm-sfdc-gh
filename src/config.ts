@@ -15,9 +15,6 @@ export const config = {
   // Admin endpoints (e.g. /admin/renew-watch called by Cloud Scheduler)
   adminSecret: env.ADMIN_SECRET || "",
 
-  // GitHub PAT — needs contents + pull-requests write on all repos in routing.json
-  githubToken: env.GITHUB_TOKEN || "",
-
   dedupTtlHours: parseInt(env.DEDUP_TTL_HOURS || "24"),
   gmailFallbackLookbackDays: parseInt(env.GMAIL_FALLBACK_LOOKBACK_DAYS || "1"),
   gmailFallbackMaxMessages: parseInt(env.GMAIL_FALLBACK_MAX_MESSAGES || "5"),
