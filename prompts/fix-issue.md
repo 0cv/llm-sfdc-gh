@@ -6,9 +6,20 @@ A GitHub issue has been created requesting a code fix. Your job is to understand
 
 {{ISSUE_BODY}}
 
+Issue author: @{{ISSUE_AUTHOR}}
+
 ## Instructions
 
 1. **Understand**: Read the issue carefully. Identify which files and Apex classes are involved.
+
+   If the issue does not contain enough information to make a safe, targeted fix, do not modify code, do not create a branch, and do not open a PR. Instead, ask exactly the missing question needed to proceed:
+   ```bash
+   gh issue comment {{ISSUE_NUMBER}} --repo {{REPO_FULL_NAME}} --body "@{{ISSUE_AUTHOR}} <your concise clarification question>"
+   ```
+   Then respond with exactly:
+   ```text
+   CLARIFICATION_REQUESTED
+   ```
 
 2. **Investigate**: Search the codebase to find the relevant code. Understand the current behavior and what needs to change.
 

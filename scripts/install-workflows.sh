@@ -92,14 +92,62 @@ permissions:
   issues: write
 
 jobs:
-  fix:
+  mark-started:
     if: github.event.label.name == 'claude-fix'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-fix-in-progress" >/dev/null
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-ready" >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-failed" >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-needs-info" >/dev/null 2>&1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            -f body="Fix workflow is in progress: $RUN_URL" >/dev/null
+
+  fix:
+    needs: mark-started
+    if: github.event.label.name == 'claude-fix' && needs.mark-started.result == 'success'
     uses: __LLMREPO__/.github/workflows/fix-from-issue.yml@main
     with:
       issueNumber: ${{ github.event.issue.number }}
       issueTitle: ${{ github.event.issue.title }}
       issueBody: ${{ github.event.issue.body }}
+      issueAuthor: ${{ github.event.issue.user.login }}
     secrets: inherit
+
+  mark-finished:
+    needs: [mark-started, fix]
+    if: always() && github.event.label.name == 'claude-fix' && needs.mark-started.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FIX_RESULT: ${{ needs.fix.result }}
+          FIX_OUTCOME: ${{ needs.fix.outputs.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-in-progress" >/dev/null 2>&1 || true
+
+          if [[ "$FIX_RESULT" == "success" && "$FIX_OUTCOME" == "clarification_requested" ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-ready" >/dev/null 2>&1 || true
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-failed" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-fix-needs-info" >/dev/null
+          elif [[ "$FIX_RESULT" == "success" ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-failed" >/dev/null 2>&1 || true
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-needs-info" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-fix-ready" >/dev/null
+          else
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-ready" >/dev/null 2>&1 || true
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-needs-info" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-fix-failed" >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+              -f body="Fix workflow failed: $RUN_URL" >/dev/null
+          fi
 YAML
 )
 push_workflow "fix-from-issue.yml" "$(render_workflow "$fix_from_issue_workflow")"
@@ -204,6 +252,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           match=""
           pattern="(fixes|closes|resolves|refs?) +#${ISSUE_NUMBER}([^0-9]|$)"
@@ -223,6 +272,13 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" \
+            -f labels[]="claude-fix-in-progress" >/dev/null
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-ready" >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-failed" >/dev/null 2>&1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            -f body="Iteration workflow is in progress: $RUN_URL" >/dev/null
 
           {
             echo "found=true"
@@ -244,6 +300,30 @@ jobs:
       commentAuthor: ${{ github.event.comment.user.login }}
       prBranch: ${{ needs.find-issue-pr.outputs.branch }}
     secrets: inherit
+
+  on-issue-comment-finished:
+    needs: [find-issue-pr, on-issue-comment]
+    if: always() && needs.find-issue-pr.result == 'success' && needs.find-issue-pr.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ITERATION_RESULT: ${{ needs.on-issue-comment.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-in-progress" >/dev/null 2>&1 || true
+
+          if [[ "$ITERATION_RESULT" == "success" ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-fix-failed" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" \
+              -f labels[]="claude-fix-ready" >/dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" \
+              -f labels[]="claude-fix-failed" >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+              -f body="Iteration workflow failed: $RUN_URL" >/dev/null
+          fi
 
   on-issue-comment-no-open-pr:
     needs: find-issue-pr
@@ -280,12 +360,24 @@ YAML
 push_workflow "init-repo.yml" "$(render_workflow "$init_repo_workflow")"
 
 # ── Create claude-fix label ──────────────────────────────────────────────────
-gh label create "claude-fix" \
-  --repo "$REPO" \
-  --color "5319e7" \
-  --description "Ask Claude to diagnose and fix this issue" \
-  --force
-echo "  label 'claude-fix' ready"
+ensure_label() {
+  local name="$1"
+  local color="$2"
+  local description="$3"
+
+  gh label create "$name" \
+    --repo "$REPO" \
+    --color "$color" \
+    --description "$description" \
+    --force
+  echo "  label '$name' ready"
+}
+
+ensure_label "claude-fix" "5319e7" "Ask Claude to diagnose and fix this issue"
+ensure_label "claude-fix-in-progress" "fbca04" "Claude fix workflow is currently running"
+ensure_label "claude-fix-ready" "0e8a16" "Claude opened or updated a fix PR"
+ensure_label "claude-fix-failed" "b60205" "Claude fix workflow failed"
+ensure_label "claude-fix-needs-info" "d4c5f9" "Claude asked the issue author for clarification"
 
 echo "Done. Workflows installed in $REPO/.github/workflows/"
 echo ""

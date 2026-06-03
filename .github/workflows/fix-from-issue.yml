@@ -11,6 +11,13 @@ on:
         required: true
       issueBody:
         type: string
+      issueAuthor:
+        type: string
+        required: true
+    outputs:
+      outcome:
+        description: "pr_created, clarification_requested, or failed"
+        value: ${{ jobs.fix.outputs.outcome }}
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
@@ -21,6 +28,8 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      outcome: ${{ steps.run.outputs.outcome }}
     permissions:
       contents: write
       pull-requests: write
@@ -54,11 +63,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Claude fix-from-issue session
+      - id: run
+        name: Run Claude fix-from-issue session
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ISSUE_NUMBER: ${{ inputs.issueNumber }}
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}
+          ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-issue.ts
