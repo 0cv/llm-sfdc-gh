@@ -46,9 +46,6 @@ export async function gmailWebhookHandler(req: Request, res: Response): Promise<
 
     logger.info({ historyId }, "Gmail Pub/Sub notification received");
 
-    // Ack immediately — Pub/Sub will retry if we don't respond within 10s
-    res.status(200).send("OK");
-
     const previousHistoryId = lastHistoryId;
     lastHistoryId = String(historyId);
 
@@ -65,6 +62,8 @@ export async function gmailWebhookHandler(req: Request, res: Response): Promise<
       logger.warn({ historyId }, "No previous Gmail historyId available; scanning recent inbox");
       await fetchRecentAndRoute();
     }
+
+    res.status(200).send("OK");
   } catch (err) {
     logger.error(err, "Gmail webhook error");
     if (!res.headersSent) {

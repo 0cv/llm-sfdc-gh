@@ -82,15 +82,17 @@ PUSH_ENDPOINT="${CLOUD_RUN_URL}/webhooks/gmail"
 
 if gcloud pubsub subscriptions describe "$SUBSCRIPTION" --project "$PROJECT" &>/dev/null; then
   echo "Updating Pub/Sub push subscription → $PUSH_ENDPOINT"
-  gcloud pubsub subscriptions modify-push-config "$SUBSCRIPTION" \
+  gcloud pubsub subscriptions update "$SUBSCRIPTION" \
     --project "$PROJECT" \
-    --push-endpoint "$PUSH_ENDPOINT"
+    --push-endpoint "$PUSH_ENDPOINT" \
+    --ack-deadline 600
 else
   echo "Creating Pub/Sub push subscription → $PUSH_ENDPOINT"
   gcloud pubsub subscriptions create "$SUBSCRIPTION" \
     --project "$PROJECT" \
     --topic "$TOPIC" \
-    --push-endpoint "$PUSH_ENDPOINT"
+    --push-endpoint "$PUSH_ENDPOINT" \
+    --ack-deadline 600
 fi
 
 echo ""
