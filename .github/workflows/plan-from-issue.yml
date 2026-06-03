@@ -27,6 +27,10 @@ on:
       SF_AUTH_URL:
         required: true
 
+concurrency:
+  group: claude-plan-${{ github.repository }}-${{ inputs.issueNumber }}
+  cancel-in-progress: false
+
 jobs:
   plan:
     runs-on: ubuntu-latest

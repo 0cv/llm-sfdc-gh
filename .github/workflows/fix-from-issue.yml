@@ -27,6 +27,10 @@ on:
       SF_AUTH_URL:
         required: true
 
+concurrency:
+  group: claude-fix-${{ github.repository }}-${{ inputs.issueNumber }}
+  cancel-in-progress: false
+
 jobs:
   fix:
     runs-on: ubuntu-latest

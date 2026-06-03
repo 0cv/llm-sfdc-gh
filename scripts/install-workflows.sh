@@ -173,6 +173,10 @@ on:
   issues:
     types: [labeled]
 
+concurrency:
+  group: claude-fix-${{ github.repository }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -249,6 +253,10 @@ on:
     types: [labeled]
   issue_comment:
     types: [created]
+
+concurrency:
+  group: claude-plan-${{ github.repository }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -386,6 +394,10 @@ on:
     types: [created]
   issue_comment:
     types: [created]
+
+concurrency:
+  group: claude-iterate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
