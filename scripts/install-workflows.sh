@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # install-workflows.sh — installs Claude fix workflows into a Salesforce GitHub repo
-# Usage: ./scripts/install-workflows.sh owner/repo
+# Usage: ./scripts/install-workflows.sh owner/repo [base-branch]
 
 set -euo pipefail
 
 REPO="${1:-}"
 if [[ -z "$REPO" ]]; then
-  echo "Usage: $0 owner/repo" >&2
+  echo "Usage: $0 owner/repo [base-branch]" >&2
   exit 1
+fi
+
+BASE_BRANCH="${2:-}"
+if [[ -z "$BASE_BRANCH" ]]; then
+  BASE_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
 fi
 
 LLMREPO="0cv/llm-sfdc-gh"
@@ -42,10 +47,12 @@ push_workflow() {
 
 render_workflow() {
   local content="$1"
-  printf '%s' "${content//__LLMREPO__/$LLMREPO}"
+  content="${content//__LLMREPO__/$LLMREPO}"
+  printf '%s' "${content//__BASE_BRANCH__/$BASE_BRANCH}"
 }
 
 echo "Installing Claude workflows into $REPO..."
+echo "Using base branch: $BASE_BRANCH"
 
 # ── fix-from-error.yml ───────────────────────────────────────────────────────
 fix_from_error_workflow=$(cat <<'YAML'
@@ -73,6 +80,7 @@ jobs:
       lineNumber: ${{ github.event.client_payload.lineNumber }}
       stackTrace: ${{ github.event.client_payload.stackTrace }}
       rawBody: ${{ github.event.client_payload.rawBody }}
+      baseBranch: __BASE_BRANCH__
     secrets: inherit
 YAML
 )
@@ -117,6 +125,7 @@ jobs:
       issueTitle: ${{ github.event.issue.title }}
       issueBody: ${{ github.event.issue.body }}
       issueAuthor: ${{ github.event.issue.user.login }}
+      baseBranch: __BASE_BRANCH__
     secrets: inherit
 
   mark-finished:
@@ -191,6 +200,7 @@ jobs:
       issueTitle: ${{ github.event.issue.title }}
       issueBody: ${{ github.event.issue.body }}
       issueAuthor: ${{ github.event.issue.user.login }}
+      baseBranch: __BASE_BRANCH__
     secrets: inherit
 
   mark_label_finished:
@@ -251,6 +261,7 @@ jobs:
       issueAuthor: ${{ github.event.issue.user.login }}
       commentBody: ${{ github.event.comment.body }}
       commentAuthor: ${{ github.event.comment.user.login }}
+      baseBranch: __BASE_BRANCH__
     secrets: inherit
 
   mark_comment_finished:
@@ -308,6 +319,7 @@ jobs:
   on-review:
     if: >
       github.event_name == 'pull_request_review' &&
+      github.event.pull_request.base.ref == '__BASE_BRANCH__' &&
       github.event.review.state != 'approved' &&
       (github.event.review.user.type != 'Bot' ||
        github.event.review.user.login == 'copilot-pull-request-reviewer[bot]')
@@ -325,6 +337,7 @@ jobs:
   on-line-comment:
     if: >
       github.event_name == 'pull_request_review_comment' &&
+      github.event.pull_request.base.ref == '__BASE_BRANCH__' &&
       (github.event.comment.user.type != 'Bot' ||
        github.event.comment.user.login == 'copilot-pull-request-reviewer[bot]')
     uses: __LLMREPO__/.github/workflows/iterate-from-review.yml@main
@@ -346,18 +359,22 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.branch.outputs.branch }}
+      base: ${{ steps.branch.outputs.base }}
     steps:
       - id: branch
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
-          branch=$(gh api repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --jq '.head.ref')
+          pr_json=$(gh api repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER)
+          branch=$(jq -r '.head.ref' <<< "$pr_json")
+          base=$(jq -r '.base.ref' <<< "$pr_json")
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
 
   on-pr-comment:
     needs: get-pr-branch
-    if: needs.get-pr-branch.result == 'success'
+    if: needs.get-pr-branch.result == 'success' && needs.get-pr-branch.outputs.base == '__BASE_BRANCH__'
     uses: __LLMREPO__/.github/workflows/iterate-from-review.yml@main
     with:
       prNumber: ${{ github.event.issue.number }}
@@ -394,6 +411,11 @@ jobs:
             pr_json=$(printf '%s' "$encoded_pr" | base64 -d)
             body=$(jq -r '.body // ""' <<< "$pr_json")
             branch=$(jq -r '.head.ref' <<< "$pr_json")
+            base=$(jq -r '.base.ref' <<< "$pr_json")
+
+            if [[ "$base" != "__BASE_BRANCH__" ]]; then
+              continue
+            fi
 
             if [[ "$branch" == "fix/issue-$ISSUE_NUMBER" ]] || grep -Eiq "$pattern" <<< "$body"; then
               match="$pr_json"
@@ -487,6 +509,8 @@ permissions:
 jobs:
   init:
     uses: __LLMREPO__/.github/workflows/init-repo.yml@main
+    with:
+      baseBranch: __BASE_BRANCH__
     secrets: inherit
 YAML
 )

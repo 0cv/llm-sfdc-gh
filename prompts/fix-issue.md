@@ -1,6 +1,7 @@
 A GitHub issue has been created requesting a code fix. Your job is to understand the issue, implement the fix, write tests, and create a pull request.
 
 **Repository:** {{REPO_FULL_NAME}}
+**Pull request base branch:** {{PR_BASE_BRANCH}}
 
 ## Issue #{{ISSUE_NUMBER}}: {{ISSUE_TITLE}}
 
@@ -55,5 +56,5 @@ Issue author: @{{ISSUE_AUTHOR}}
    git add -A
    git commit -m "fix: {{ISSUE_TITLE}} (closes #{{ISSUE_NUMBER}})"
    git push -u origin HEAD
-   gh pr create --title "fix: {{ISSUE_TITLE}}" --body "Closes #{{ISSUE_NUMBER}}\n\n## Summary\n<explain what was changed and why>\n\n## Test Coverage\n<explain>\n\nAutomated fix by Claude from GitHub issue."
+   gh pr create --base "{{PR_BASE_BRANCH}}" --title "fix: {{ISSUE_TITLE}}" --body "Closes #{{ISSUE_NUMBER}}\n\n## Summary\n<explain what was changed and why>\n\n## Test Coverage\n<explain>"
    ```

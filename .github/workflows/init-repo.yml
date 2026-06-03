@@ -2,6 +2,10 @@ name: Init Repo (generate CLAUDE.md)
 
 on:
   workflow_call:
+    inputs:
+      baseBranch:
+        type: string
+        default: main
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
@@ -17,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.baseBranch }}
 
       - uses: actions/setup-node@v6
         with:

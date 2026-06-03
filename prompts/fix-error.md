@@ -1,5 +1,7 @@
 A Salesforce production error email has arrived. Your job is to diagnose the root cause, fix the code, write or update unit tests, verify the fix, and create a pull request.
 
+**Pull request base branch:** {{PR_BASE_BRANCH}}
+
 ## Raw Error Email
 
 **Subject:** {{EMAIL_SUBJECT}}
@@ -67,7 +69,7 @@ Work through these steps in order.
    git add -A
    git commit -m "fix: {{EXCEPTION_TYPE}} in {{APEX_CLASS}}"
    git push -u origin HEAD
-   gh pr create --title "fix: {{EXCEPTION_TYPE}} in {{APEX_CLASS}}" --body "## Root Cause\n<explain>\n\n## Fix\n<explain>\n\n## Test Coverage\n<explain>\n\nAutomated fix by Claude from production exception email."
+   gh pr create --base "{{PR_BASE_BRANCH}}" --title "fix: {{EXCEPTION_TYPE}} in {{APEX_CLASS}}" --body "## Root Cause\n<explain>\n\n## Fix\n<explain>\n\n## Test Coverage\n<explain>"
    ```
 
 **Important**: Do not explore the codebase beyond what is needed for steps 1–3. Every file read costs a turn.

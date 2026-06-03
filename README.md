@@ -69,8 +69,8 @@ Each Salesforce org sends errors to a tagged Gmail address. The `+tag` in the `T
 **`routing.json`**
 ```json
 {
-  "dropbox":  "0cv/dropbox-dev",
-  "billing":  "0cv/billing-service"
+  "dropbox": "0cv/dropbox-dev",
+  "kiniksa": "komodohealth/kiniksa-pjn-patient-journey-navigator"
 }
 ```
 
@@ -225,16 +225,18 @@ This is the only manual step after deployment. Cloud Scheduler handles all subse
 ### 7. Install Claude workflows into each SF repo
 
 ```bash
-./scripts/install-workflows.sh owner/repo
+./scripts/install-workflows.sh owner/repo [base-branch]
 ```
 
-Creates (or updates) four workflow files in the target repo's `.github/workflows/`:
+Creates (or updates) five workflow files in the target repo's `.github/workflows/`:
 - `fix-from-error.yml` — triggers on `repository_dispatch: [salesforce-error]`
 - `fix-from-issue.yml` — triggers natively when an issue is labeled `claude-fix`
 - `plan-from-issue.yml` — triggers when an issue is labeled `claude-plan`, then retriggers on human comments after the plan is ready; installs SF CLI and authenticates with `SF_AUTH_URL` for org metadata discovery
 - `iterate-from-review.yml` — triggers natively on PR review or PR comment
+- `init-repo.yml` — manual workflow to generate `CLAUDE.md`
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
+If `base-branch` is omitted, the installer uses the target repo's default branch. For repos with a promotion chain, pass the first integration branch explicitly, for example `msmerge-release`.
 
 ### 8. Add GitHub Actions secrets to each SF repo
 

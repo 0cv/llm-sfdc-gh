@@ -25,6 +25,7 @@ const {
   STACK_TRACE = "",
   RAW_BODY = "",
   GITHUB_REPOSITORY = "",
+  PR_BASE_BRANCH = "main",
 } = process.env;
 
 const prTitle = fixPullRequestTitle({
@@ -70,6 +71,7 @@ const result = await runClaudeSession(
     STACK_TRACE,
     RAW_BODY,
     SF_TARGET_ORG: "pipeline-org",
+    PR_BASE_BRANCH,
   },
   model
 );

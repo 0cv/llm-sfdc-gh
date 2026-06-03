@@ -25,6 +25,9 @@ on:
         type: string
       rawBody:
         type: string
+      baseBranch:
+        type: string
+        default: main
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
@@ -41,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.baseBranch }}
 
       - uses: actions/setup-node@v6
         with:
@@ -81,4 +86,5 @@ jobs:
           STACK_TRACE: ${{ inputs.stackTrace }}
           RAW_BODY: ${{ inputs.rawBody }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BASE_BRANCH: ${{ inputs.baseBranch }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-error.ts

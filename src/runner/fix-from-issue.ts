@@ -11,7 +11,13 @@ import { addIssueLabels, postIssueComment, removeIssueLabel } from "../github/is
 
 requireEnv("ISSUE_NUMBER", "ISSUE_TITLE", "ISSUE_AUTHOR");
 
-const { ISSUE_NUMBER = "", ISSUE_TITLE = "", ISSUE_BODY = "", ISSUE_AUTHOR = "" } = process.env;
+const {
+  ISSUE_NUMBER = "",
+  ISSUE_TITLE = "",
+  ISSUE_BODY = "",
+  ISSUE_AUTHOR = "",
+  PR_BASE_BRANCH = "main",
+} = process.env;
 const REPO_FULL_NAME = process.env.GITHUB_REPOSITORY ?? "";
 
 async function setOutcome(
@@ -33,6 +39,7 @@ const result = await runClaudeSession(
     ISSUE_AUTHOR,
     REPO_FULL_NAME,
     SF_TARGET_ORG: "pipeline-org",
+    PR_BASE_BRANCH,
   },
   model
 );
