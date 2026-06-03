@@ -55,7 +55,7 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │    → same fix flow, sourced from issue body instead of email          │
 │                                                                       │
 │  plan-from-issue.yml ← triggered by "claude-plan" or plan comments    │
-│    → reads relevant files and comments/updates a plan; no code changes│
+│    → installs SF CLI, can read org metadata, updates a plan only      │
 │                                                                       │
 │  iterate-from-review.yml  ← triggered natively by PR review / comment │
 │    → Claude reads feedback, updates code, pushes to same branch       │
@@ -231,7 +231,7 @@ This is the only manual step after deployment. Cloud Scheduler handles all subse
 Creates (or updates) four workflow files in the target repo's `.github/workflows/`:
 - `fix-from-error.yml` — triggers on `repository_dispatch: [salesforce-error]`
 - `fix-from-issue.yml` — triggers natively when an issue is labeled `claude-fix`
-- `plan-from-issue.yml` — triggers when an issue is labeled `claude-plan`, then retriggers on human comments after the plan is ready
+- `plan-from-issue.yml` — triggers when an issue is labeled `claude-plan`, then retriggers on human comments after the plan is ready; installs SF CLI and authenticates with `SF_AUTH_URL` for org metadata discovery
 - `iterate-from-review.yml` — triggers natively on PR review or PR comment
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
@@ -324,6 +324,6 @@ In each repo: Settings → Secrets → Actions
 
 7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, and pushes.
 
-8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant files using read-only tools and posts an implementation plan as an issue comment. After the `claude-plan-ready` label is present, human comments on the issue retrigger the plan workflow and update the existing plan comment. It does not create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
+8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant repo files and can use the authenticated SF CLI to query or retrieve org metadata for analysis, then posts an implementation plan as an issue comment. After the `claude-plan-ready` label is present, human comments on the issue retrigger the plan workflow and update the existing plan comment. It does not deploy, create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
 
 Duplicate error emails are suppressed when an open PR already exists with the deterministic title `fix: <ExceptionType> in <ApexClassOrFlow>`. This keeps repeated Salesforce emails from opening multiple PRs for the same active fix.

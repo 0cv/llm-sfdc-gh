@@ -128,6 +128,7 @@ const result = await runClaudeSession(
     ISSUE_BODY,
     ISSUE_AUTHOR,
     REPO_FULL_NAME: GITHUB_REPOSITORY,
+    SF_TARGET_ORG: process.env.SF_TARGET_ORG || "pipeline-org",
     PLAN_MODE: isIteration ? "iteration" : "initial",
     COMMENT_BODY: COMMENT_BODY.trim() || "No new feedback comment was provided.",
     COMMENT_AUTHOR: COMMENT_AUTHOR || "n/a",
@@ -136,7 +137,7 @@ const result = await runClaudeSession(
   },
   model,
   {
-    allowedTools: ["Read", "Glob", "Grep"],
+    allowedTools: ["Read", "Glob", "Grep", "Bash"],
     maxTurns: parseInt(process.env.MAX_PLAN_TURNS || "15"),
     summaryMaxChars: 12000,
   }

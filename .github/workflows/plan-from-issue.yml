@@ -21,6 +21,8 @@ on:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
+      SF_AUTH_URL:
+        required: true
 
 jobs:
   plan:
@@ -36,6 +38,15 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Authenticate Salesforce org
+        run: |
+          echo "${{ secrets.SF_AUTH_URL }}" > /tmp/sf-auth.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/sf-auth.txt --alias pipeline-org --set-default
+          rm /tmp/sf-auth.txt
 
       - name: Clone llm-sfdc-gh and install runner dependencies
         run: |
@@ -54,4 +65,5 @@ jobs:
           COMMENT_BODY: ${{ inputs.commentBody }}
           COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
           GH_TOKEN: ${{ github.token }}
+          SF_TARGET_ORG: pipeline-org
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/plan-from-issue.ts

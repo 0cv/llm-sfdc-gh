@@ -1,6 +1,6 @@
 A GitHub issue has been selected for planning only.
 
-Create or update an implementation plan for the requested change. Do not edit files, do not create branches, do not commit, do not push, and do not create a pull request.
+Create or update an implementation plan for the requested change. You may inspect repository files and use the Salesforce CLI against the authenticated target org for read-only discovery. Do not implement code changes, do not create branches, do not commit, do not push, do not deploy, and do not create a pull request.
 
 ## Issue
 
@@ -9,6 +9,7 @@ Create or update an implementation plan for the requested change. Do not edit fi
 - Author: @{{ISSUE_AUTHOR}}
 - Title: {{ISSUE_TITLE}}
 - Mode: {{PLAN_MODE}}
+- Salesforce target org: {{SF_TARGET_ORG}}
 
 ## Body
 
@@ -45,7 +46,8 @@ Create or update an implementation plan for the requested change. Do not edit fi
 5. If the request is clear enough to implement, describe the likely changes, validation, risks, and rollout notes.
 6. Keep the plan practical and scoped to this repository.
 7. Do not include implementation code unless a tiny snippet is necessary to clarify intent.
-8. Output only the complete GitHub issue comment body for the current plan.
+8. When org metadata is needed for the plan, use `sf` commands against `{{SF_TARGET_ORG}}` to retrieve or query metadata for analysis. Temporary retrieved metadata may be inspected during the run, but must not be committed or deployed.
+9. Output only the complete GitHub issue comment body for the current plan.
 
 Use this format:
 
