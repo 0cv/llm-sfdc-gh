@@ -178,7 +178,23 @@ openssl rand -hex 32
 
 Add the output to `.env` as `ADMIN_SECRET`. This protects the `/admin/renew-watch` endpoint called by Cloud Scheduler.
 
-### 4. Deploy Cloud Run
+### 4. Generate a GitHub dispatch token
+
+Cloud Run uses `GITHUB_TOKEN` to call GitHub's `repository_dispatch` API for each target repo in `routing.json`.
+
+Create a fine-grained personal access token at https://github.com/settings/personal-access-tokens/new:
+
+- Resource owner: the GitHub owner that contains the target repos, e.g. `0cv`
+- Repository access: select every repo listed in `routing.json`, e.g. `0cv/dropbox-dev`
+- Repository permissions: `Contents` → `Read and write`
+
+Add the generated token to `.env`:
+
+```bash
+GITHUB_TOKEN=github_pat_...
+```
+
+### 5. Deploy Cloud Run
 
 ```bash
 ./scripts/deploy.sh <gcp-project-id>
@@ -189,7 +205,7 @@ This single command:
 - Creates or updates the Pub/Sub push subscription pointing to the service
 - Creates or updates the Cloud Scheduler job for daily Gmail watch renewal
 
-### 5. Start Gmail watch (once)
+### 6. Start Gmail watch (once)
 
 ```bash
 npm run renew-watch
@@ -197,7 +213,7 @@ npm run renew-watch
 
 This is the only manual step after deployment. Cloud Scheduler handles all subsequent renewals automatically every day at 06:00 UTC.
 
-### 6. Install Claude workflows into each SF repo
+### 7. Install Claude workflows into each SF repo
 
 ```bash
 ./scripts/install-workflows.sh owner/repo
@@ -210,7 +226,7 @@ Creates (or updates) three workflow files in the target repo's `.github/workflow
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
 
-### 7. Add GitHub Actions secrets to each SF repo
+### 8. Add GitHub Actions secrets to each SF repo
 
 In each repo: Settings → Secrets → Actions
 
@@ -249,7 +265,7 @@ In each repo: Settings → Secrets → Actions
 | `GMAIL_PUBSUB_TOPIC` | `projects/<project-id>/topics/sf-errors` |
 | `GMAIL_FALLBACK_LOOKBACK_DAYS` | Recent Gmail window scanned when history state is missing or stale (default 1) |
 | `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Gmail messages scanned during fallback (default 25) |
-| `GITHUB_TOKEN` | PAT with `contents` + `pull-requests` write on all repos in `routing.json` |
+| `GITHUB_TOKEN` | Fine-grained PAT with `Contents: Read and write` on all repos in `routing.json`; used for `repository_dispatch` |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |
 
