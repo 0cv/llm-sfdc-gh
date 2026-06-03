@@ -21,7 +21,7 @@ const {
 } = process.env;
 
 // Build full PR context: linked issue → PR description → review history → conversation
-const prContext = buildPrContext(GITHUB_REPOSITORY, PR_NUMBER);
+const prContext = await buildPrContext(GITHUB_REPOSITORY, PR_NUMBER);
 
 // COMMENT_BODY is the triggering event (may be empty if review had no summary text).
 // The inline comments are already captured in prContext via the reviews API.

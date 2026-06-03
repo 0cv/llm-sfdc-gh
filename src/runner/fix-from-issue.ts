@@ -7,7 +7,7 @@ import { runClaudeSession } from "../claude/session.js";
 import { pickModel } from "../claude/complexity.js";
 import { requireEnv } from "./base.js";
 import { logger } from "../utils/logger.js";
-import { addIssueLabels, postIssueComment, removeIssueLabel } from "../github/issues.js";
+import { postIssueComment } from "../github/issues.js";
 
 requireEnv("ISSUE_NUMBER", "ISSUE_TITLE", "ISSUE_AUTHOR");
 
@@ -48,10 +48,6 @@ if (result.success && result.prUrl) {
   const prNumber = result.prUrl.match(/\/pull\/(\d+)/)?.[1];
   const prRef = prNumber ? `#${prNumber} (${result.prUrl})` : result.prUrl;
 
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-in-progress");
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-failed");
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-needs-info");
-  await addIssueLabels(REPO_FULL_NAME, ISSUE_NUMBER, ["claude-fix-ready"]);
   await postIssueComment(
     REPO_FULL_NAME,
     ISSUE_NUMBER,
@@ -62,18 +58,10 @@ if (result.success && result.prUrl) {
   logger.info({ prUrl: result.prUrl, issue: ISSUE_NUMBER }, "PR created from issue");
   process.exit(0);
 } else if (result.success && result.summary.includes("CLARIFICATION_REQUESTED")) {
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-in-progress");
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-ready");
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-failed");
-  await addIssueLabels(REPO_FULL_NAME, ISSUE_NUMBER, ["claude-fix-needs-info"]);
-
   await setOutcome("clarification_requested");
   logger.info({ issue: ISSUE_NUMBER }, "Clarification requested on issue");
   process.exit(0);
 } else {
-  await removeIssueLabel(REPO_FULL_NAME, ISSUE_NUMBER, "claude-fix-in-progress");
-  await addIssueLabels(REPO_FULL_NAME, ISSUE_NUMBER, ["claude-fix-failed"]);
-
   await setOutcome("failed");
   logger.error({ summary: result.summary }, "Claude session failed");
   process.exit(1);

@@ -121,7 +121,10 @@ if gcloud scheduler jobs describe "$SCHEDULER_JOB" --location "$REGION" --projec
     --schedule "0 6 * * *" \
     --uri "${CLOUD_RUN_URL}/admin/renew-watch" \
     --http-method POST \
-    --update-headers "Authorization=Bearer ${ADMIN_SECRET}"
+    --update-headers "Authorization=Bearer ${ADMIN_SECRET}" \
+    --quiet \
+    --format="none" \
+    >/dev/null
 else
   echo "Creating Cloud Scheduler job (daily at 06:00 UTC)..."
   gcloud scheduler jobs create http "$SCHEDULER_JOB" \
@@ -130,7 +133,10 @@ else
     --schedule "0 6 * * *" \
     --uri "${CLOUD_RUN_URL}/admin/renew-watch" \
     --http-method POST \
-    --headers "Authorization=Bearer ${ADMIN_SECRET}"
+    --headers "Authorization=Bearer ${ADMIN_SECRET}" \
+    --quiet \
+    --format="none" \
+    >/dev/null
 fi
 
 echo "✅ Cloud Scheduler job set: daily Gmail watch renewal"

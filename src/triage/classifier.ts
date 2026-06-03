@@ -8,6 +8,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SalesforceError } from "../email/parser.js";
 import { logger } from "../utils/logger.js";
+import { CLAUDE_MODELS } from "../claude/models.js";
 
 export interface TriageResult {
   isCodeBug: boolean;
@@ -52,7 +53,7 @@ export async function triageError(error: SalesforceError): Promise<TriageResult>
         TRIAGE_PROMPT +
         `Exception type: ${error.exceptionType}\nMessage: ${error.message}\nClass: ${error.apexClass ?? "unknown"}\nStack trace:\n${error.stackTrace}`,
       options: {
-        model: "claude-haiku-4-5-20251001",
+        model: CLAUDE_MODELS.triage,
         maxTurns: 1,
         allowedTools: [],
         settingSources: [],

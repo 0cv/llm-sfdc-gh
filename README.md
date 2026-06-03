@@ -301,6 +301,8 @@ In each repo: Settings → Secrets → Actions
 |----------|-------------|
 | `PORT` | Local server port (default 3000) |
 | `DEDUP_TTL_HOURS` | Error dedup window (default 24h) |
+| `MAX_CLAUDE_TURNS` | Maximum turns for fix/init/iterate Claude sessions (default 40) |
+| `MAX_PLAN_TURNS` | Maximum turns for plan-only Claude sessions (default 15) |
 
 ---
 

@@ -10,7 +10,6 @@ import { join } from "node:path";
 export interface SessionResult {
   success: boolean;
   summary: string;
-  branchName: string | null;
   prUrl: string | null;
 }
 
@@ -46,7 +45,6 @@ export async function runClaudeSession(
   logger.info({ promptName, model }, "Starting Claude session");
 
   let lastAssistantText = "";
-  let branchName: string | null = null;
   let prUrl: string | null = null;
 
   try {
@@ -74,9 +72,6 @@ export async function runClaudeSession(
             lastAssistantText = block.text;
             logger.info({ text: block.text }, "[Claude] text");
 
-            const branchMatch = block.text.match(/branch[:\s]+[`']?([a-zA-Z0-9/_-]+)[`']?/i);
-            if (branchMatch) branchName = branchMatch[1];
-
             const prMatch = block.text.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/);
             if (prMatch) prUrl = prMatch[0];
           }
@@ -90,12 +85,11 @@ export async function runClaudeSession(
       }
     }
 
-    logger.info({ branchName, prUrl }, "Claude session completed");
+    logger.info({ prUrl }, "Claude session completed");
 
     return {
       success: true,
       summary: lastAssistantText.slice(0, sessionOptions.summaryMaxChars ?? 500),
-      branchName,
       prUrl,
     };
   } catch (err) {
@@ -103,7 +97,6 @@ export async function runClaudeSession(
     return {
       success: false,
       summary: String(err),
-      branchName: null,
       prUrl: null,
     };
   }

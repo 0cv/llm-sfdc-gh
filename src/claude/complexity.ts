@@ -8,10 +8,7 @@
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { logger } from "../utils/logger.js";
-
-const CLASSIFIER_MODEL = "claude-sonnet-4-6";
-const SIMPLE_MODEL = "claude-opus-4-6";
-const COMPLEX_MODEL = "claude-opus-4-8";
+import { CLAUDE_MODELS } from "./models.js";
 
 const PROMPT = `You are a Salesforce engineering complexity classifier.
 Given a task description, classify it as "simple" or "complex".
@@ -31,7 +28,7 @@ export async function pickModel(taskSummary: string): Promise<string> {
     for await (const message of query({
       prompt: PROMPT + taskSummary,
       options: {
-        model: CLASSIFIER_MODEL,
+        model: CLAUDE_MODELS.classifier,
         maxTurns: 1,
         allowedTools: [],
         settingSources: [],
@@ -48,12 +45,12 @@ export async function pickModel(taskSummary: string): Promise<string> {
 
     const match = responseText.match(/COMPLEXITY:\s*(simple|complex)/i);
     const complexity = match?.[1]?.toLowerCase() ?? "simple";
-    const model = complexity === "complex" ? COMPLEX_MODEL : SIMPLE_MODEL;
+    const model = complexity === "complex" ? CLAUDE_MODELS.complex : CLAUDE_MODELS.simple;
 
     logger.info({ complexity, model }, "Model selected");
     return model;
   } catch (err) {
     logger.warn({ err }, "Complexity classification failed, defaulting to Opus 4.6");
-    return SIMPLE_MODEL;
+    return CLAUDE_MODELS.simple;
   }
 }

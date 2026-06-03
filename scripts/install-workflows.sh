@@ -50,7 +50,9 @@ ensure_install_branch() {
 push_workflow() {
   local filename="$1"
   local content="$2"
+  local desired
   local encoded
+  desired=$(printf '%s' "$content")
   encoded=$(printf '%s\n' "$content" | base64 | tr -d '\n')
 
   local ref_suffix=""
@@ -60,11 +62,18 @@ push_workflow() {
     branch_args=(-f branch="$INSTALL_BRANCH")
   fi
 
-  # Get current SHA if file exists (required for updates)
+  # Get current SHA/content if file exists (SHA is required for updates).
   local sha
   sha=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" --jq '.sha' 2>/dev/null || true)
 
   if [[ -n "$sha" ]]; then
+    local existing
+    existing=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" --jq '.content' | base64 --decode)
+    if [[ "$existing" == "$desired" ]]; then
+      echo "  unchanged $filename"
+      return
+    fi
+
     gh api "repos/$REPO/contents/.github/workflows/$filename" \
       -X PUT \
       -f message="ci: update Claude $filename workflow" \
