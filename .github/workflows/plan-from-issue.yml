@@ -14,6 +14,10 @@ on:
       issueAuthor:
         type: string
         required: true
+      commentBody:
+        type: string
+      commentAuthor:
+        type: string
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
@@ -47,5 +51,7 @@ jobs:
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}
           ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
+          COMMENT_BODY: ${{ inputs.commentBody }}
+          COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
           GH_TOKEN: ${{ github.token }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/plan-from-issue.ts

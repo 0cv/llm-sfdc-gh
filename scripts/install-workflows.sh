@@ -159,14 +159,16 @@ name: Plan from GitHub Issue
 on:
   issues:
     types: [labeled]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   issues: write
 
 jobs:
-  mark-started:
-    if: github.event.label.name == 'claude-plan'
+  mark_label_started:
+    if: github.event_name == 'issues' && github.event.label.name == 'claude-plan'
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -180,9 +182,9 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
             -f body="Planning workflow is in progress: $RUN_URL" >/dev/null
 
-  plan:
-    needs: mark-started
-    if: github.event.label.name == 'claude-plan' && needs.mark-started.result == 'success'
+  plan_from_label:
+    needs: mark_label_started
+    if: github.event_name == 'issues' && github.event.label.name == 'claude-plan' && needs.mark_label_started.result == 'success'
     uses: __LLMREPO__/.github/workflows/plan-from-issue.yml@main
     with:
       issueNumber: ${{ github.event.issue.number }}
@@ -191,15 +193,15 @@ jobs:
       issueAuthor: ${{ github.event.issue.user.login }}
     secrets: inherit
 
-  mark-finished:
-    needs: [mark-started, plan]
-    if: always() && github.event.label.name == 'claude-plan' && needs.mark-started.result == 'success'
+  mark_label_finished:
+    needs: [mark_label_started, plan_from_label]
+    if: always() && github.event_name == 'issues' && github.event.label.name == 'claude-plan' && needs.mark_label_started.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          PLAN_RESULT: ${{ needs.plan.result }}
+          PLAN_RESULT: ${{ needs.plan_from_label.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-in-progress" >/dev/null 2>&1 || true
@@ -212,6 +214,72 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-failed" >/dev/null
             gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
               -f body="Planning workflow failed: $RUN_URL" >/dev/null
+          fi
+
+  mark_comment_started:
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(github.event.issue.labels.*.name, 'claude-plan-ready')
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-in-progress" >/dev/null
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-ready" >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-failed" >/dev/null 2>&1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            -f body="Plan update workflow is in progress: $RUN_URL" >/dev/null
+
+  plan_from_comment:
+    needs: mark_comment_started
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(github.event.issue.labels.*.name, 'claude-plan-ready') &&
+      needs.mark_comment_started.result == 'success'
+    uses: __LLMREPO__/.github/workflows/plan-from-issue.yml@main
+    with:
+      issueNumber: ${{ github.event.issue.number }}
+      issueTitle: ${{ github.event.issue.title }}
+      issueBody: ${{ github.event.issue.body }}
+      issueAuthor: ${{ github.event.issue.user.login }}
+      commentBody: ${{ github.event.comment.body }}
+      commentAuthor: ${{ github.event.comment.user.login }}
+    secrets: inherit
+
+  mark_comment_finished:
+    needs: [mark_comment_started, plan_from_comment]
+    if: >
+      always() &&
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(github.event.issue.labels.*.name, 'claude-plan-ready') &&
+      needs.mark_comment_started.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PLAN_RESULT: ${{ needs.plan_from_comment.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-in-progress" >/dev/null 2>&1 || true
+
+          if [[ "$PLAN_RESULT" == "success" ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-failed" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-ready" >/dev/null
+          else
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels/claude-plan-ready" >/dev/null 2>&1 || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/labels" -f labels[]="claude-plan-failed" >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+              -f body="Plan update workflow failed: $RUN_URL" >/dev/null
           fi
 YAML
 )

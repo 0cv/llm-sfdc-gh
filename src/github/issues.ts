@@ -2,6 +2,30 @@ import { logger } from "../utils/logger.js";
 
 const API_VERSION = "2022-11-28";
 
+export interface IssueComment {
+  id: number;
+  body: string;
+  htmlUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    login: string;
+    type: string;
+  };
+}
+
+interface GitHubIssueComment {
+  id: number;
+  body?: string | null;
+  html_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  user?: {
+    login?: string;
+    type?: string;
+  } | null;
+}
+
 function githubToken(): string | undefined {
   return process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 }
@@ -48,6 +72,104 @@ export async function postIssueComment(
       "Failed to post issue comment"
     );
   }
+}
+
+export async function listIssueComments(
+  repo: string,
+  issueNumber: string
+): Promise<IssueComment[]> {
+  const token = githubToken();
+  if (!repo || !issueNumber || !token) {
+    logger.warn(
+      { repo, issueNumber },
+      "Skipping issue comment listing; GitHub context is incomplete"
+    );
+    return [];
+  }
+
+  const comments: IssueComment[] = [];
+  const maxPages = 3;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const response = await fetch(
+      `https://api.github.com/repos/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+      {
+        method: "GET",
+        headers: {
+          accept: "application/vnd.github+json",
+          authorization: `Bearer ${token}`,
+          "user-agent": "llm-sfdc-gh",
+          "x-github-api-version": API_VERSION,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const responseBody = await response.text();
+      logger.warn(
+        { repo, issueNumber, status: response.status, body: responseBody },
+        "Failed to list issue comments"
+      );
+      return comments;
+    }
+
+    const pageComments = (await response.json()) as GitHubIssueComment[];
+    comments.push(
+      ...pageComments.map((comment) => ({
+        id: comment.id,
+        body: comment.body || "",
+        htmlUrl: comment.html_url || "",
+        createdAt: comment.created_at || "",
+        updatedAt: comment.updated_at || "",
+        user: {
+          login: comment.user?.login || "unknown",
+          type: comment.user?.type || "unknown",
+        },
+      }))
+    );
+
+    if (pageComments.length < 100) break;
+  }
+
+  return comments;
+}
+
+export async function updateIssueComment(
+  repo: string,
+  commentId: number,
+  body: string
+): Promise<boolean> {
+  const token = githubToken();
+  if (!repo || !commentId || !token) {
+    logger.warn({ repo, commentId }, "Skipping issue comment update; GitHub context is incomplete");
+    return false;
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${repo}/issues/comments/${commentId}`,
+    {
+      method: "PATCH",
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        "user-agent": "llm-sfdc-gh",
+        "x-github-api-version": API_VERSION,
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    logger.warn(
+      { repo, commentId, status: response.status, body: responseBody },
+      "Failed to update issue comment"
+    );
+    return false;
+  }
+
+  return true;
 }
 
 export async function addIssueLabels(
