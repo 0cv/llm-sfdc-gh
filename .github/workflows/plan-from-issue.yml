@@ -38,7 +38,7 @@ jobs:
           gh repo clone 0cv/llm-sfdc-gh /tmp/llm-sfdc-gh -- --depth 1
           cd /tmp/llm-sfdc-gh && npm install
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run Claude plan session
         env:
@@ -47,5 +47,5 @@ jobs:
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}
           ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/plan-from-issue.ts
