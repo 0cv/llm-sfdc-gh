@@ -111,6 +111,7 @@ async function fetchRecentAndRoute(): Promise<void> {
 
   const messages = await gmail.users.messages.list({
     userId: "me",
+    includeSpamTrash: true,
     maxResults,
     q: `newer_than:${newerThanDays}d`,
   });
