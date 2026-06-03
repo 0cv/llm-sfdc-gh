@@ -226,6 +226,8 @@ This is the only manual step after deployment. Cloud Scheduler handles all subse
 
 ```bash
 ./scripts/install-workflows.sh owner/repo [base-branch]
+# For protected repos that require PRs:
+./scripts/install-workflows.sh owner/repo [base-branch] --pr
 ```
 
 Creates (or updates) five workflow files in the target repo's `.github/workflows/`:
@@ -237,6 +239,7 @@ Creates (or updates) five workflow files in the target repo's `.github/workflows
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
 If `base-branch` is omitted, the installer uses the target repo's default branch. For repos with a promotion chain, pass the first integration branch explicitly, for example `msmerge-release`.
+If direct workflow writes are blocked by repository rules, pass `--pr`; the installer writes to `claude-install-workflows-<base-branch>` and opens a PR into the selected base branch.
 
 ### 8. Add GitHub Actions secrets to each SF repo
 
@@ -260,7 +263,7 @@ In each repo: Settings → Secrets → Actions
    ```
 2. Redeploy: `./scripts/deploy.sh <gcp-project-id>`
 3. Configure Salesforce to send exception emails to `salesforceerrors+newtag@gmail.com`
-4. Install workflows: `./scripts/install-workflows.sh org/repo-name`
+4. Install workflows: `./scripts/install-workflows.sh org/repo-name [base-branch]`
 5. Add `SF_AUTH_URL` secret to `org/repo-name` (Settings → Secrets → Actions)
 
 ---
@@ -306,7 +309,7 @@ In each repo: Settings → Secrets → Actions
 | `auth-gmail.ts` | Once, or when rotating credentials | `npm run auth-gmail` |
 | `deploy.sh` | Every code change or env var update | `./scripts/deploy.sh <project-id>` |
 | `renew-gmail-watch.ts` | Once after first deploy (then automated) | `npm run renew-watch` |
-| `install-workflows.sh` | Once per new repo (or to update) | `./scripts/install-workflows.sh owner/repo` |
+| `install-workflows.sh` | Once per new repo (or to update) | `./scripts/install-workflows.sh owner/repo [base-branch] [--pr]` |
 
 ---
 

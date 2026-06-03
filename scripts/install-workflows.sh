@@ -1,21 +1,51 @@
 #!/usr/bin/env bash
-# install-workflows.sh — installs Claude fix workflows into a Salesforce GitHub repo
-# Usage: ./scripts/install-workflows.sh owner/repo [base-branch]
+# install-workflows.sh — installs Claude workflows into a Salesforce GitHub repo
+# Usage: ./scripts/install-workflows.sh owner/repo [base-branch] [--pr]
 
 set -euo pipefail
 
 REPO="${1:-}"
 if [[ -z "$REPO" ]]; then
-  echo "Usage: $0 owner/repo [base-branch]" >&2
+  echo "Usage: $0 owner/repo [base-branch] [--pr]" >&2
   exit 1
 fi
 
-BASE_BRANCH="${2:-}"
+INSTALL_MODE="direct"
+BASE_BRANCH=""
+if [[ "${2:-}" == "--pr" ]]; then
+  INSTALL_MODE="pr"
+elif [[ "${3:-}" == "--pr" ]]; then
+  BASE_BRANCH="${2:-}"
+  INSTALL_MODE="pr"
+else
+  BASE_BRANCH="${2:-}"
+fi
+
 if [[ -z "$BASE_BRANCH" ]]; then
   BASE_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
 fi
 
 LLMREPO="0cv/llm-sfdc-gh"
+INSTALL_BRANCH="claude-install-workflows-${BASE_BRANCH//\//-}"
+
+ensure_install_branch() {
+  if [[ "$INSTALL_MODE" != "pr" ]]; then
+    return
+  fi
+
+  if gh api "repos/$REPO/git/ref/heads/$INSTALL_BRANCH" --silent 2>/dev/null; then
+    echo "  using existing install branch $INSTALL_BRANCH"
+    return
+  fi
+
+  local base_sha
+  base_sha=$(gh api "repos/$REPO/git/ref/heads/$BASE_BRANCH" --jq '.object.sha')
+  gh api "repos/$REPO/git/refs" \
+    -f ref="refs/heads/$INSTALL_BRANCH" \
+    -f sha="$base_sha" \
+    --silent
+  echo "  created install branch $INSTALL_BRANCH from $BASE_BRANCH"
+}
 
 push_workflow() {
   local filename="$1"
@@ -23,9 +53,16 @@ push_workflow() {
   local encoded
   encoded=$(printf '%s\n' "$content" | base64 | tr -d '\n')
 
+  local ref_suffix=""
+  local branch_args=()
+  if [[ "$INSTALL_MODE" == "pr" ]]; then
+    ref_suffix="?ref=$INSTALL_BRANCH"
+    branch_args=(-f branch="$INSTALL_BRANCH")
+  fi
+
   # Get current SHA if file exists (required for updates)
   local sha
-  sha=$(gh api "repos/$REPO/contents/.github/workflows/$filename" --jq '.sha' 2>/dev/null || true)
+  sha=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" --jq '.sha' 2>/dev/null || true)
 
   if [[ -n "$sha" ]]; then
     gh api "repos/$REPO/contents/.github/workflows/$filename" \
@@ -33,6 +70,7 @@ push_workflow() {
       -f message="ci: update Claude $filename workflow" \
       -f content="$encoded" \
       -f sha="$sha" \
+      "${branch_args[@]}" \
       --silent
     echo "  updated $filename"
   else
@@ -40,9 +78,46 @@ push_workflow() {
       -X PUT \
       -f message="ci: add Claude $filename workflow" \
       -f content="$encoded" \
+      "${branch_args[@]}" \
       --silent
     echo "  created $filename"
   fi
+}
+
+open_install_pr() {
+  if [[ "$INSTALL_MODE" != "pr" ]]; then
+    return
+  fi
+
+  local existing_pr
+  existing_pr=$(gh pr list \
+    --repo "$REPO" \
+    --head "$INSTALL_BRANCH" \
+    --base "$BASE_BRANCH" \
+    --state open \
+    --json url \
+    --jq '.[0].url // ""')
+
+  if [[ -n "$existing_pr" ]]; then
+    echo "  install PR already open: $existing_pr"
+    return
+  fi
+
+  gh pr create \
+    --repo "$REPO" \
+    --head "$INSTALL_BRANCH" \
+    --base "$BASE_BRANCH" \
+    --title "ci: install Claude workflows" \
+    --body "Installs Claude issue, planning, review-iteration, error-dispatch, and init workflows targeting \`$BASE_BRANCH\`." \
+    >/dev/null
+
+  gh pr list \
+    --repo "$REPO" \
+    --head "$INSTALL_BRANCH" \
+    --base "$BASE_BRANCH" \
+    --state open \
+    --json url \
+    --jq '.[0].url'
 }
 
 render_workflow() {
@@ -53,6 +128,10 @@ render_workflow() {
 
 echo "Installing Claude workflows into $REPO..."
 echo "Using base branch: $BASE_BRANCH"
+if [[ "$INSTALL_MODE" == "pr" ]]; then
+  echo "Install mode: pull request"
+fi
+ensure_install_branch
 
 # ── fix-from-error.yml ───────────────────────────────────────────────────────
 fix_from_error_workflow=$(cat <<'YAML'
@@ -540,7 +619,13 @@ ensure_label "claude-plan-in-progress" "fbca04" "Claude planning workflow is cur
 ensure_label "claude-plan-ready" "0e8a16" "Claude posted an implementation plan"
 ensure_label "claude-plan-failed" "b60205" "Claude planning workflow failed"
 
-echo "Done. Workflows installed in $REPO/.github/workflows/"
+open_install_pr
+
+if [[ "$INSTALL_MODE" == "pr" ]]; then
+  echo "Done. Workflow install PR opened or updated for $REPO."
+else
+  echo "Done. Workflows installed in $REPO/.github/workflows/"
+fi
 echo ""
 echo "Required secret — set per repo (Settings → Secrets → Actions):"
 echo "  SF_AUTH_URL   — force://PlatformCLI::<token>@yourorg.my.salesforce.com"
@@ -549,5 +634,9 @@ echo "  CLAUDE_CODE_OAUTH_TOKEN should be set once at the GitHub org level"
 echo "  (Org Settings → Secrets → Actions) and granted to this repo."
 echo "  If not using an org, set it per repo as well."
 echo ""
-echo "Then run the init workflow once to generate CLAUDE.md:"
+if [[ "$INSTALL_MODE" == "pr" ]]; then
+  echo "After merging the install PR, run the init workflow once to generate CLAUDE.md:"
+else
+  echo "Then run the init workflow once to generate CLAUDE.md:"
+fi
 echo "  gh workflow run init-repo.yml --repo $REPO"
