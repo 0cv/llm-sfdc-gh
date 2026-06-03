@@ -5,6 +5,8 @@
 import { runClaudeSession } from "../claude/session.js";
 import { pickModel } from "../claude/complexity.js";
 import { buildPrContext } from "../github/context.js";
+import { actionsRunUrl, postIssueComment } from "../github/issues.js";
+import { getPullRequestBody, updatePullRequestBody } from "../github/pulls.js";
 import { logger } from "../utils/logger.js";
 import { requireEnv } from "./base.js";
 
@@ -47,7 +49,54 @@ const result = await runClaudeSession(
   model
 );
 
+function extractIterationSummary(summary: string): string {
+  const match = summary.match(/ITERATION_SUMMARY:\s*([\s\S]+)/i);
+  const text = (match?.[1] ?? summary).trim();
+  return text || "Addressed feedback and pushed updates.";
+}
+
+function summarizeFeedback(feedback: string): string {
+  const normalized = feedback.replace(/\s+/g, " ").trim();
+  if (!normalized) return "(see PR history)";
+  return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
+}
+
+function appendIterationHistory(body: string, entry: string): string {
+  const header = "## Iteration History";
+  const index = body.indexOf(header);
+
+  if (index === -1) {
+    const prefix = body.trimEnd();
+    return `${prefix ? `${prefix}\n\n` : ""}${header}\n\n${entry}\n`;
+  }
+
+  const insertAt = index + header.length;
+  return `${body.slice(0, insertAt)}\n\n${entry}${body.slice(insertAt)}`;
+}
+
 if (result.success) {
+  const summary = extractIterationSummary(result.summary);
+  const runUrl = actionsRunUrl();
+  const runLine = runUrl ? `\n- Run: [Actions run](${runUrl})` : "";
+  const timestamp = new Date().toISOString();
+  const author = COMMENT_AUTHOR ? `@${COMMENT_AUTHOR}` : "review feedback";
+  const entry = `### ${timestamp}\n- Feedback: ${author}: ${summarizeFeedback(COMMENT_BODY)}\n- Update: ${summary}${runLine}`;
+
+  const currentBody = await getPullRequestBody(GITHUB_REPOSITORY, PR_NUMBER);
+  if (currentBody !== null) {
+    await updatePullRequestBody(
+      GITHUB_REPOSITORY,
+      PR_NUMBER,
+      appendIterationHistory(currentBody, entry)
+    );
+  }
+
+  await postIssueComment(
+    GITHUB_REPOSITORY,
+    PR_NUMBER,
+    `Updated this PR after feedback from ${author}.\n\n${summary}${runUrl ? `\n\nRun: ${runUrl}` : ""}`
+  );
+
   logger.info({ pr: PR_NUMBER }, "PR updated with review feedback");
   process.exit(0);
 } else {

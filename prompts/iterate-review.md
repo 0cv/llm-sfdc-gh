@@ -66,4 +66,9 @@ The following is the full conversation history for this PR, including any linked
    git push
    ```
 
+7. **Summarize the update**: End your response with exactly one concise line in this format:
+   ```text
+   ITERATION_SUMMARY: <what changed and what validation you ran>
+   ```
+
 Do NOT create a new PR — push to the existing branch.
