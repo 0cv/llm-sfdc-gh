@@ -54,12 +54,12 @@ export async function gmailWebhookHandler(req: Request, res: Response): Promise<
       if (processed === 0) {
         logger.warn(
           { historyId, previousHistoryId },
-          "No Gmail history messages found; scanning recent inbox"
+          "No Gmail history messages found; scanning recent mail"
         );
         await fetchRecentAndRoute();
       }
     } else {
-      logger.warn({ historyId }, "No previous Gmail historyId available; scanning recent inbox");
+      logger.warn({ historyId }, "No previous Gmail historyId available; scanning recent mail");
       await fetchRecentAndRoute();
     }
 
@@ -84,7 +84,7 @@ async function fetchAndRoute(startHistoryId: string): Promise<number> {
       historyTypes: ["messageAdded"],
     });
   } catch (err) {
-    logger.warn({ err, startHistoryId }, "Failed to fetch Gmail history; scanning recent inbox");
+    logger.warn({ err, startHistoryId }, "Failed to fetch Gmail history; scanning recent mail");
     return 0;
   }
 
@@ -111,7 +111,6 @@ async function fetchRecentAndRoute(): Promise<void> {
 
   const messages = await gmail.users.messages.list({
     userId: "me",
-    labelIds: ["INBOX"],
     maxResults,
     q: `newer_than:${newerThanDays}d`,
   });
@@ -119,7 +118,7 @@ async function fetchRecentAndRoute(): Promise<void> {
   const messageIds = messages.data.messages?.map((message) => message.id).filter(Boolean) ?? [];
   logger.info(
     { count: messageIds.length, newerThanDays, maxResults },
-    "Scanning recent Gmail inbox messages"
+    "Scanning recent Gmail messages"
   );
 
   for (const msgId of messageIds) {

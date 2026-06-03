@@ -20,7 +20,6 @@ export async function renewGmailWatch(): Promise<{ historyId: string; expiration
     userId: "me",
     requestBody: {
       topicName: config.gmailPubsubTopic,
-      labelIds: ["INBOX"],
     },
   });
 
