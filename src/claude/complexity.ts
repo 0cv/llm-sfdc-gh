@@ -1,6 +1,6 @@
 /**
  * Classifies the complexity of a Claude task to route to the right model.
- * Simple → Sonnet. Complex → Opus.
+ * Simple → Opus 4.6. Complex → Opus 4.8.
  *
  * Uses query() (agent SDK) instead of the direct Anthropic SDK so that
  * CLAUDE_CODE_OAUTH_TOKEN is handled correctly by the claude CLI.
@@ -9,8 +9,9 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { logger } from "../utils/logger.js";
 
-const SONNET = "claude-sonnet-4-6";
-const OPUS = "claude-opus-4-6";
+const CLASSIFIER_MODEL = "claude-sonnet-4-6";
+const SIMPLE_MODEL = "claude-opus-4-6";
+const COMPLEX_MODEL = "claude-opus-4-8";
 
 const PROMPT = `You are a Salesforce engineering complexity classifier.
 Given a task description, classify it as "simple" or "complex".
@@ -30,7 +31,7 @@ export async function pickModel(taskSummary: string): Promise<string> {
     for await (const message of query({
       prompt: PROMPT + taskSummary,
       options: {
-        model: SONNET,
+        model: CLASSIFIER_MODEL,
         maxTurns: 1,
         allowedTools: [],
         settingSources: [],
@@ -47,12 +48,12 @@ export async function pickModel(taskSummary: string): Promise<string> {
 
     const match = responseText.match(/COMPLEXITY:\s*(simple|complex)/i);
     const complexity = match?.[1]?.toLowerCase() ?? "simple";
-    const model = complexity === "complex" ? OPUS : SONNET;
+    const model = complexity === "complex" ? COMPLEX_MODEL : SIMPLE_MODEL;
 
     logger.info({ complexity, model }, "Model selected");
     return model;
   } catch (err) {
-    logger.warn({ err }, "Complexity classification failed, defaulting to Sonnet");
-    return SONNET;
+    logger.warn({ err }, "Complexity classification failed, defaulting to Opus 4.6");
+    return SIMPLE_MODEL;
   }
 }

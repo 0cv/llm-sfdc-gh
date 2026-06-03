@@ -77,7 +77,9 @@ function parseFlowError(subject: string, body: string): SalesforceError | null {
   const elementType = elementMatch?.[2] ?? null;
 
   // Error message: after "This error occurred:" or "Error Occurred:"
-  const errorMatch = body.match(/This error occurred:\s*([^\n.]+(?:\.[^\n]+)*?)(?:\.\s*You can look up|$)/im);
+  const errorMatch = body.match(
+    /This error occurred:\s*([^\n.]+(?:\.[^\n]+)*?)(?:\.\s*You can look up|$)/im
+  );
   const message = errorMatch?.[1]?.trim() ?? body.slice(0, 300);
 
   // Exception type from error code e.g. FIELD_CUSTOM_VALIDATION_EXCEPTION
@@ -120,7 +122,6 @@ function createFingerprint(subject: string, body: string): string {
 }
 
 function parseApexError(subject: string, body: string): SalesforceError | null {
-
   // ── Org name ────────────────────────────────────────────────────────────────
   // Body: "Organization: Dropbox Custom (customchris-dev-ed.my.salesforce.com)."
   // Subject fallback: "...exception from Dropbox Custom : ..."

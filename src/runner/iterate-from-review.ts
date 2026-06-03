@@ -29,7 +29,9 @@ if (!COMMENT_BODY && !prContext.trim()) {
   process.exit(1);
 }
 
-const model = await pickModel(`PR review feedback:\n${COMMENT_BODY}\n\n${prContext.slice(0, 1000)}`);
+const model = await pickModel(
+  `PR review feedback:\n${COMMENT_BODY}\n\n${prContext.slice(0, 1000)}`
+);
 
 const result = await runClaudeSession(
   "iterate-review",

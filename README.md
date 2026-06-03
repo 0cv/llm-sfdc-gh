@@ -147,7 +147,7 @@ dropbox-dev (SF repo)
 
 - `gcloud` CLI authenticated
 - `gh` CLI authenticated
-- `node` 20+
+- `node` 24+
 - `@salesforce/cli` installed globally
 
 ### 1. GCP infrastructure

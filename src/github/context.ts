@@ -66,9 +66,8 @@ export function buildPrContext(repo: string, prNumber: string): string {
   if (issueMatch) {
     const issueNumber = issueMatch[1];
     const issue = safe("linked issue", () => ghApi<GhIssue>(`repos/${repo}/issues/${issueNumber}`));
-    const issueComments = safe(
-      "linked issue comments",
-      () => ghApi<GhComment[]>(`repos/${repo}/issues/${issueNumber}/comments`)
+    const issueComments = safe("linked issue comments", () =>
+      ghApi<GhComment[]>(`repos/${repo}/issues/${issueNumber}/comments`)
     );
 
     if (issue) {
@@ -87,10 +86,11 @@ export function buildPrContext(repo: string, prNumber: string): string {
   }
 
   // ── Review history (submitted reviews + their inline comments) ─────────────
-  const reviews = safe("reviews", () => ghApi<GhReview[]>(`repos/${repo}/pulls/${prNumber}/reviews`));
-  const inlineComments = safe(
-    "review comments",
-    () => ghApi<GhReviewComment[]>(`repos/${repo}/pulls/${prNumber}/comments`)
+  const reviews = safe("reviews", () =>
+    ghApi<GhReview[]>(`repos/${repo}/pulls/${prNumber}/reviews`)
+  );
+  const inlineComments = safe("review comments", () =>
+    ghApi<GhReviewComment[]>(`repos/${repo}/pulls/${prNumber}/comments`)
   );
 
   if (reviews && reviews.length > 0) {
@@ -120,14 +120,11 @@ export function buildPrContext(repo: string, prNumber: string): string {
   }
 
   // ── PR conversation comments (Conversation tab) ────────────────────────────
-  const conversation = safe(
-    "PR conversation",
-    () => ghApi<GhComment[]>(`repos/${repo}/issues/${prNumber}/comments`)
+  const conversation = safe("PR conversation", () =>
+    ghApi<GhComment[]>(`repos/${repo}/issues/${prNumber}/comments`)
   );
   if (conversation && conversation.length > 0) {
-    const blocks = conversation.map(
-      (c) => `**${c.user.login}** (${c.created_at}):\n${c.body}`
-    );
+    const blocks = conversation.map((c) => `**${c.user.login}** (${c.created_at}):\n${c.body}`);
     sections.push(`# PR Conversation\n\n${blocks.join("\n\n---\n\n")}`);
   }
 
