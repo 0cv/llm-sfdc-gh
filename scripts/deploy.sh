@@ -67,6 +67,7 @@ gcloud run deploy "$SERVICE" \
   --region "$REGION" \
   --project "$PROJECT" \
   --set-env-vars "$env_string" \
+  --memory 1Gi \
   --allow-unauthenticated
 
 CLOUD_RUN_URL=$(gcloud run services describe "$SERVICE" \
