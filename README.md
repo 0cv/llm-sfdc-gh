@@ -193,7 +193,9 @@ Create a fine-grained personal access token at https://github.com/settings/perso
 
 - Resource owner: the GitHub owner that contains the target repos, e.g. `0cv`
 - Repository access: select every repo listed in `routing.json`, e.g. `0cv/dropbox-dev`
-- Repository permissions: `Contents` → `Read and write`
+- Repository permissions:
+  - `Contents` → `Read and write`
+  - `Pull requests` → `Read-only`
 
 Add the generated token to `.env`:
 
@@ -272,8 +274,9 @@ In each repo: Settings → Secrets → Actions
 | `GMAIL_REFRESH_TOKEN` | Obtained via `npm run auth-gmail` |
 | `GMAIL_PUBSUB_TOPIC` | `projects/<project-id>/topics/sf-errors` |
 | `GMAIL_FALLBACK_LOOKBACK_DAYS` | Recent Gmail window scanned when history state is missing or stale (default 1) |
-| `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Gmail messages scanned during fallback (default 25) |
-| `GITHUB_TOKEN` | Fine-grained PAT with `Contents: Read and write` on all repos in `routing.json`; used for `repository_dispatch` |
+| `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Gmail messages scanned during fallback (default 5) |
+| `GMAIL_FALLBACK_MAX_AGE_MINUTES` | Maximum message age processed during fallback scans (default 10) |
+| `GITHUB_TOKEN` | Fine-grained PAT with `Contents: Read and write` and `Pull requests: Read-only` on all repos in `routing.json`; used for `repository_dispatch` and duplicate PR checks |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |
 

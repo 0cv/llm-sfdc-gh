@@ -28,8 +28,7 @@ export async function findOpenPullRequestByTitle(
 ): Promise<OpenPullRequestMatch | null> {
   const token = githubToken();
   if (!repo || !title || !token) {
-    logger.warn({ repo, title }, "Skipping PR title lookup; GitHub context is incomplete");
-    return null;
+    throw new Error("Cannot list open PRs; GitHub context is incomplete");
   }
 
   const response = await fetch(
@@ -47,7 +46,7 @@ export async function findOpenPullRequestByTitle(
   if (!response.ok) {
     const body = await response.text();
     logger.warn({ repo, title, status: response.status, body }, "Failed to list open PRs");
-    return null;
+    throw new Error(`Failed to list open PRs: ${response.status} ${body}`);
   }
 
   const pulls = (await response.json()) as PullRequestListItem[];

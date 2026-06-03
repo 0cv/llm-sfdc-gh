@@ -41,10 +41,15 @@ const prTitle = fixPullRequestTitle({
   fingerprint: "",
 } satisfies SalesforceError);
 
-const existingPr = await findOpenPullRequestByTitle(GITHUB_REPOSITORY, prTitle);
-if (existingPr) {
-  logger.info({ pr: existingPr.url, title: prTitle }, "Open PR already exists for this error");
-  process.exit(0);
+try {
+  const existingPr = await findOpenPullRequestByTitle(GITHUB_REPOSITORY, prTitle);
+  if (existingPr) {
+    logger.info({ pr: existingPr.url, title: prTitle }, "Open PR already exists for this error");
+    process.exit(0);
+  }
+} catch (err) {
+  logger.error(err, "Failed to check for an existing PR");
+  process.exit(1);
 }
 
 const model = await pickModel(

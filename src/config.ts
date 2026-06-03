@@ -20,5 +20,6 @@ export const config = {
 
   dedupTtlHours: parseInt(env.DEDUP_TTL_HOURS || "24"),
   gmailFallbackLookbackDays: parseInt(env.GMAIL_FALLBACK_LOOKBACK_DAYS || "1"),
-  gmailFallbackMaxMessages: parseInt(env.GMAIL_FALLBACK_MAX_MESSAGES || "25"),
+  gmailFallbackMaxMessages: parseInt(env.GMAIL_FALLBACK_MAX_MESSAGES || "5"),
+  gmailFallbackMaxAgeMinutes: parseInt(env.GMAIL_FALLBACK_MAX_AGE_MINUTES || "10"),
 } as const;

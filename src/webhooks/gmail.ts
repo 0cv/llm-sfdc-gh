@@ -18,8 +18,14 @@ import { config } from "../config.js";
 
 // Track history and message IDs while this Cloud Run worker is warm.
 let lastHistoryId: string | null = null;
+let gmailProcessingQueue: Promise<void> = Promise.resolve();
 const processedMessageIds = new Map<string, number>();
 const MESSAGE_TTL_MS = config.dedupTtlHours * 60 * 60 * 1000;
+
+interface RouteMessageOptions {
+  maxAgeMs?: number;
+  source: "history" | "fallback";
+}
 
 // Routing table: +tag → GitHub repo (e.g. "dropbox" → "0cv/dropbox-dev")
 let routing: Record<string, string> = {};
@@ -43,12 +49,38 @@ export async function gmailWebhookHandler(req: Request, res: Response): Promise<
 
     const data = JSON.parse(Buffer.from(pubsubMessage.data, "base64").toString());
     const { historyId } = data;
+    if (!historyId) {
+      logger.warn({ data }, "Gmail Pub/Sub notification missing historyId");
+      res.status(200).send("OK");
+      return;
+    }
 
     logger.info({ historyId }, "Gmail Pub/Sub notification received");
+    await enqueueGmailNotification(String(historyId));
 
-    const previousHistoryId = lastHistoryId;
-    lastHistoryId = String(historyId);
+    res.status(200).send("OK");
+  } catch (err) {
+    logger.error(err, "Gmail webhook error");
+    if (!res.headersSent) {
+      res.status(200).send("OK"); // Always ack to prevent retry storms
+    }
+  }
+}
 
+function enqueueGmailNotification(historyId: string): Promise<void> {
+  const work = gmailProcessingQueue.then(() => processGmailNotification(historyId));
+  gmailProcessingQueue = work.catch(() => undefined);
+  return work;
+}
+
+async function processGmailNotification(historyId: string): Promise<void> {
+  const previousHistoryId = lastHistoryId;
+  if (previousHistoryId === historyId) {
+    logger.info({ historyId }, "Gmail Pub/Sub notification already handled, skipping");
+    return;
+  }
+
+  try {
     if (previousHistoryId) {
       const processed = await fetchAndRoute(previousHistoryId);
       if (processed === 0) {
@@ -62,13 +94,8 @@ export async function gmailWebhookHandler(req: Request, res: Response): Promise<
       logger.warn({ historyId }, "No previous Gmail historyId available; scanning recent mail");
       await fetchRecentAndRoute();
     }
-
-    res.status(200).send("OK");
-  } catch (err) {
-    logger.error(err, "Gmail webhook error");
-    if (!res.headersSent) {
-      res.status(200).send("OK"); // Always ack to prevent retry storms
-    }
+  } finally {
+    lastHistoryId = historyId;
   }
 }
 
@@ -96,7 +123,7 @@ async function fetchAndRoute(startHistoryId: string): Promise<number> {
   let processed = 0;
   for (const msgId of messageIds) {
     if (!msgId) continue;
-    await fetchAndRouteMessage(gmail, msgId);
+    await fetchAndRouteMessage(gmail, msgId, { source: "history" });
     processed++;
   }
 
@@ -108,6 +135,8 @@ async function fetchRecentAndRoute(): Promise<void> {
   const gmail = google.gmail({ version: "v1", auth });
   const newerThanDays = Math.max(1, config.gmailFallbackLookbackDays);
   const maxResults = Math.max(1, config.gmailFallbackMaxMessages);
+  const maxAgeMinutes = Math.max(1, config.gmailFallbackMaxAgeMinutes);
+  const maxAgeMs = maxAgeMinutes * 60 * 1000;
 
   const messages = await gmail.users.messages.list({
     userId: "me",
@@ -118,19 +147,20 @@ async function fetchRecentAndRoute(): Promise<void> {
 
   const messageIds = messages.data.messages?.map((message) => message.id).filter(Boolean) ?? [];
   logger.info(
-    { count: messageIds.length, newerThanDays, maxResults },
+    { count: messageIds.length, newerThanDays, maxResults, maxAgeMinutes },
     "Scanning recent Gmail messages"
   );
 
   for (const msgId of messageIds) {
     if (!msgId) continue;
-    await fetchAndRouteMessage(gmail, msgId);
+    await fetchAndRouteMessage(gmail, msgId, { maxAgeMs, source: "fallback" });
   }
 }
 
 async function fetchAndRouteMessage(
   gmail: ReturnType<typeof google.gmail>,
-  msgId: string
+  msgId: string,
+  options: RouteMessageOptions
 ): Promise<void> {
   if (isProcessedMessage(msgId)) {
     logger.info({ msgId }, "Gmail message already processed in this worker, skipping");
@@ -142,6 +172,15 @@ async function fetchAndRouteMessage(
     id: msgId,
     format: "full",
   });
+
+  const internalDate = msg.data.internalDate ? Number(msg.data.internalDate) : null;
+  if (options.maxAgeMs && internalDate && Date.now() - internalDate > options.maxAgeMs) {
+    logger.info(
+      { msgId, internalDate, source: options.source, maxAgeMs: options.maxAgeMs },
+      "Gmail fallback message is outside the recent window, skipping"
+    );
+    return;
+  }
 
   const headers = msg.data.payload?.headers ?? [];
   const subject = headerValue(headers, "subject");
