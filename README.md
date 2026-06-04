@@ -143,7 +143,9 @@ llm-sfdc-gh (this repo)
 dropbox-dev (SF repo)
   .github/workflows/fix-from-error.yml     ← tiny caller (2 lines)
     uses: 0cv/llm-sfdc-gh/.github/workflows/fix-from-error.yml@main
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 ```
 
 ---
@@ -251,7 +253,7 @@ In each repo: Settings → Secrets → Actions
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` |
 | `SF_AUTH_URL` | `force://PlatformCLI::<token>@yourorg.sandbox.my.salesforce.com` |
 
-`CLAUDE_CODE_OAUTH_TOKEN` can be set at the GitHub org level to share it across all repos. Generate with: `claude setup-token`.
+The generated caller workflows pass those two secrets explicitly to the reusable workflows. `CLAUDE_CODE_OAUTH_TOKEN` can be set at the GitHub org level to share it across all repos, as long as the target repo has access to that org secret. Generate it with: `claude setup-token`.
 `SF_AUTH_URL` is per-repo — each repo has its own Salesforce org credentials.
 
 ---

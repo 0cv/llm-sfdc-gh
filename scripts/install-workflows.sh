@@ -169,7 +169,9 @@ jobs:
       stackTrace: ${{ github.event.client_payload.stackTrace }}
       rawBody: ${{ github.event.client_payload.rawBody }}
       baseBranch: __BASE_BRANCH__
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 YAML
 )
 push_workflow "fix-from-error.yml" "$(render_workflow "$fix_from_error_workflow")"
@@ -218,7 +220,9 @@ jobs:
       issueBody: ${{ github.event.issue.body }}
       issueAuthor: ${{ github.event.issue.user.login }}
       baseBranch: __BASE_BRANCH__
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   mark-finished:
     needs: [mark-started, fix]
@@ -297,7 +301,9 @@ jobs:
       issueBody: ${{ github.event.issue.body }}
       issueAuthor: ${{ github.event.issue.user.login }}
       baseBranch: __BASE_BRANCH__
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   mark_label_finished:
     needs: [mark_label_started, plan_from_label]
@@ -358,7 +364,9 @@ jobs:
       commentBody: ${{ github.event.comment.body }}
       commentAuthor: ${{ github.event.comment.user.login }}
       baseBranch: __BASE_BRANCH__
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   mark_comment_finished:
     needs: [mark_comment_started, plan_from_comment]
@@ -430,7 +438,9 @@ jobs:
       commentBody: ${{ github.event.review.body }}
       commentAuthor: ${{ github.event.review.user.login }}
       prBranch: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   # Inline line comment ("Add single comment") — branch is in the payload
   # Also fires for Copilot inline comments, but not for other bots
@@ -447,7 +457,9 @@ jobs:
       commentBody: ${{ github.event.comment.body }}
       commentAuthor: ${{ github.event.comment.user.login }}
       prBranch: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   # PR conversation comment — branch is not in payload, fetch it from the API first
   get-pr-branch:
@@ -482,7 +494,9 @@ jobs:
       commentBody: ${{ github.event.comment.body }}
       commentAuthor: ${{ github.event.comment.user.login }}
       prBranch: ${{ needs.get-pr-branch.outputs.branch }}
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   # Original issue comment — resolve the open fix PR, then iterate on that PR
   find-issue-pr:
@@ -554,7 +568,9 @@ jobs:
       commentBody: ${{ github.event.comment.body }}
       commentAuthor: ${{ github.event.comment.user.login }}
       prBranch: ${{ needs.find-issue-pr.outputs.branch }}
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 
   on-issue-comment-finished:
     needs: [find-issue-pr, on-issue-comment]
@@ -611,7 +627,9 @@ jobs:
     uses: __LLMREPO__/.github/workflows/init-repo.yml@main
     with:
       baseBranch: __BASE_BRANCH__
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
 YAML
 )
 push_workflow "init-repo.yml" "$(render_workflow "$init_repo_workflow")"
