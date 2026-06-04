@@ -138,7 +138,7 @@ const result = await runClaudeSession(
   model,
   {
     allowedTools: ["Read", "Glob", "Grep", "Bash"],
-    maxTurns: parseInt(process.env.MAX_PLAN_TURNS || "15"),
+    maxTurns: parseInt(process.env.MAX_PLAN_TURNS || "40"),
     summaryMaxChars: 12000,
   }
 );
