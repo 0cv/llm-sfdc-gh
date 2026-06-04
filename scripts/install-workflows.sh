@@ -55,12 +55,11 @@ push_workflow() {
   desired=$(printf '%s' "$content")
   encoded=$(printf '%s\n' "$content" | base64 | tr -d '\n')
 
-  local ref_suffix=""
-  local branch_args=()
+  local target_branch="$BASE_BRANCH"
   if [[ "$INSTALL_MODE" == "pr" ]]; then
-    ref_suffix="?ref=$INSTALL_BRANCH"
-    branch_args=(-f branch="$INSTALL_BRANCH")
+    target_branch="$INSTALL_BRANCH"
   fi
+  local ref_suffix="?ref=$target_branch"
 
   # Get current SHA/content if file exists (SHA is required for updates).
   local sha
@@ -79,7 +78,7 @@ push_workflow() {
       -f message="ci: update Claude $filename workflow" \
       -f content="$encoded" \
       -f sha="$sha" \
-      "${branch_args[@]}" \
+      -f branch="$target_branch" \
       --silent
     echo "  updated $filename"
   else
@@ -87,7 +86,7 @@ push_workflow() {
       -X PUT \
       -f message="ci: add Claude $filename workflow" \
       -f content="$encoded" \
-      "${branch_args[@]}" \
+      -f branch="$target_branch" \
       --silent
     echo "  created $filename"
   fi
