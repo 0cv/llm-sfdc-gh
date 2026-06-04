@@ -21,10 +21,6 @@ on:
       SF_AUTH_URL:
         required: true
 
-concurrency:
-  group: claude-iterate-${{ github.repository }}-${{ inputs.prBranch }}
-  cancel-in-progress: false
-
 jobs:
   iterate:
     runs-on: ubuntu-latest
