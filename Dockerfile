@@ -8,6 +8,7 @@ RUN npm ci --omit=dev
 COPY src/ ./src/
 COPY prompts/ ./prompts/
 COPY routing.json ./
+COPY pipeline.json ./
 COPY tsconfig.json ./
 
 # Install tsx and Claude Code CLI

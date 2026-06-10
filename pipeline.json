@@ -1,0 +1,6 @@
+{
+  "komodohealth/kiniksa-pjn-patient-journey-navigator": {
+    "preProductionBranches": ["msmerge-release", "release"],
+    "productionBranch": "main"
+  }
+}

@@ -27,6 +27,24 @@ interface GitHubIssueComment {
   } | null;
 }
 
+interface GitHubIssue {
+  number: number;
+  title: string;
+  html_url: string;
+  state: string;
+}
+
+interface SearchIssuesResponse {
+  items?: GitHubIssue[];
+}
+
+export interface IssueMatch {
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+}
+
 export function actionsRunUrl(): string | null {
   const serverUrl = process.env.GITHUB_SERVER_URL || "https://github.com";
   const repo = process.env.GITHUB_REPOSITORY;
@@ -69,6 +87,130 @@ export async function postIssueComment(
       "Failed to post issue comment"
     );
   }
+}
+
+export async function findOpenIssueByTitle(
+  repo: string,
+  title: string
+): Promise<IssueMatch | null> {
+  const token = githubTokenForRepo(repo);
+  if (!repo || !title || !token) {
+    throw new Error("Cannot search issues; GitHub context is incomplete");
+  }
+
+  const exactTitle = title.trim();
+  const escapedTitle = exactTitle.replace(/"/g, '\\"');
+  const params = new URLSearchParams({
+    q: `repo:${repo} type:issue state:open in:title "${escapedTitle}"`,
+    sort: "updated",
+    order: "desc",
+    per_page: "20",
+  });
+
+  const response = await fetch(`https://api.github.com/search/issues?${params.toString()}`, {
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "user-agent": "llm-sfdc-gh",
+      "x-github-api-version": API_VERSION,
+    },
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    logger.warn(
+      { repo, title, status: response.status, body: responseBody },
+      "Failed to search issues"
+    );
+    throw new Error(`Failed to search issues: ${response.status} ${responseBody}`);
+  }
+
+  const search = (await response.json()) as SearchIssuesResponse;
+  const match = (search.items ?? []).find((issue) => issue.title.trim() === exactTitle);
+  if (!match) return null;
+
+  return {
+    number: match.number,
+    title: match.title,
+    url: match.html_url,
+    state: match.state,
+  };
+}
+
+export async function createIssue(
+  repo: string,
+  title: string,
+  body: string
+): Promise<IssueMatch | null> {
+  const token = githubTokenForRepo(repo);
+  if (!repo || !title || !token) {
+    logger.warn({ repo, title }, "Skipping issue creation; GitHub context is incomplete");
+    return null;
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      "user-agent": "llm-sfdc-gh",
+      "x-github-api-version": API_VERSION,
+    },
+    body: JSON.stringify({ title, body }),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    logger.warn(
+      { repo, title, status: response.status, body: responseBody },
+      "Failed to create issue"
+    );
+    return null;
+  }
+
+  const issue = (await response.json()) as GitHubIssue;
+  return {
+    number: issue.number,
+    title: issue.title,
+    url: issue.html_url,
+    state: issue.state,
+  };
+}
+
+export async function updateIssueBody(
+  repo: string,
+  issueNumber: string,
+  body: string
+): Promise<boolean> {
+  const token = githubTokenForRepo(repo);
+  if (!repo || !issueNumber || !token) {
+    logger.warn({ repo, issueNumber }, "Skipping issue update; GitHub context is incomplete");
+    return false;
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+    method: "PATCH",
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      "user-agent": "llm-sfdc-gh",
+      "x-github-api-version": API_VERSION,
+    },
+    body: JSON.stringify({ body }),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    logger.warn(
+      { repo, issueNumber, status: response.status, body: responseBody },
+      "Failed to update issue"
+    );
+    return false;
+  }
+
+  return true;
 }
 
 export async function listIssueComments(

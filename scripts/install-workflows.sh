@@ -656,6 +656,7 @@ ensure_label "claude-plan" "1d76db" "Ask Claude to draft an implementation plan 
 ensure_label "claude-plan-in-progress" "fbca04" "Claude planning workflow is currently running"
 ensure_label "claude-plan-ready" "0e8a16" "Claude posted an implementation plan"
 ensure_label "claude-plan-failed" "b60205" "Claude planning workflow failed"
+ensure_label "claude-awaiting-production" "fbca04" "A matching fix has merged but has not reached production"
 
 open_install_pr
 

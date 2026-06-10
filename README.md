@@ -31,6 +31,7 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │    → routing.json: "dropbox" → "0cv/dropbox-dev"                      │
 │    → dedup (skip if same error seen in last 24h)                      │
 │    → skip dispatch if an open PR already has the expected fix title   │
+│    → skip dispatch if pipeline.json shows the fix is awaiting prod    │
 │    → triage via Claude Haiku (skip operational noise)                 │
 │    → POST /repos/0cv/dropbox-dev/dispatches  (repository_dispatch)    │
 │                                                                       │
@@ -75,6 +76,18 @@ Each Salesforce org sends errors to a tagged Gmail address. The `+tag` in the `T
 ```
 
 To onboard a new org: add a line to `routing.json`, redeploy Cloud Run, and configure that org to send exception emails to `salesforceerrors+yourtag@gmail.com`.
+
+**`pipeline.json`**
+```json
+{
+  "komodohealth/kiniksa-pjn-patient-journey-navigator": {
+    "preProductionBranches": ["msmerge-release", "release"],
+    "productionBranch": "main"
+  }
+}
+```
+
+For repos with a promotion chain, add their pre-production branches and production branch. When a repeat error matches a merged same-title PR whose merge commit is present on a pre-production branch but not the production branch, Cloud Run suppresses the duplicate fix dispatch and creates or updates an `Awaiting production: ...` tracking issue.
 
 ---
 
@@ -125,6 +138,7 @@ src/
     iterate-from-review.ts Entry point for iterate-from-review workflow (fetched by GA)
 
 routing.json               +tag → GitHub repo mapping
+pipeline.json              repo → promotion branches for duplicate suppression
 Dockerfile                 Cloud Run container
 ```
 
@@ -198,6 +212,7 @@ Create a fine-grained personal access token at https://github.com/settings/perso
 - Repository permissions:
   - `Contents` → `Read and write`
   - `Pull requests` → `Read-only`
+  - `Issues` → `Read and write`
 
 Add the generated token to `.env`. `GITHUB_TOKEN` is the default fallback. Komodo repos use `GITHUB_TOKEN_KOMODO` when present. Other owner-specific tokens can use `GITHUB_TOKEN_<OWNER>` with the owner uppercased and non-alphanumeric characters replaced by underscores.
 
@@ -264,10 +279,11 @@ The generated caller workflows pass those two secrets explicitly to the reusable
    ```json
    { "newtag": "org/repo-name" }
    ```
-2. Redeploy: `./scripts/deploy.sh <gcp-project-id>`
-3. Configure Salesforce to send exception emails to `salesforceerrors+newtag@gmail.com`
-4. Install workflows: `./scripts/install-workflows.sh org/repo-name [base-branch]`
-5. Add `SF_AUTH_URL` secret to `org/repo-name` (Settings → Secrets → Actions)
+2. If the repo has a promotion chain, add an entry to `pipeline.json`.
+3. Redeploy: `./scripts/deploy.sh <gcp-project-id>`
+4. Configure Salesforce to send exception emails to `salesforceerrors+newtag@gmail.com`
+5. Install workflows: `./scripts/install-workflows.sh org/repo-name [base-branch]`
+6. Add `SF_AUTH_URL` secret to `org/repo-name` (Settings → Secrets → Actions)
 
 ---
 
@@ -284,9 +300,9 @@ The generated caller workflows pass those two secrets explicitly to the reusable
 | `GMAIL_FALLBACK_LOOKBACK_DAYS` | Recent Gmail window scanned when history state is missing or stale (default 1) |
 | `GMAIL_FALLBACK_MAX_MESSAGES` | Maximum recent Gmail messages scanned during fallback (default 5) |
 | `GMAIL_FALLBACK_MAX_AGE_MINUTES` | Maximum message age processed during fallback scans (default 10) |
-| `GITHUB_TOKEN` | Default fine-grained PAT with `Contents: Read and write` and `Pull requests: Read-only`; used for `repository_dispatch` and duplicate PR checks when no owner-specific token is configured |
-| `GITHUB_TOKEN_KOMODO` | Optional Komodo-specific fine-grained PAT for `komodohealth/*` repos; used before `GITHUB_TOKEN` |
-| `GITHUB_TOKEN_<OWNER>` | Optional owner-specific PAT convention for other owners; `deploy.sh` forwards matching variables from `.env` to Cloud Run |
+| `GITHUB_TOKEN` | Default fine-grained PAT with `Contents: Read and write`, `Pull requests: Read-only`, and `Issues: Read and write`; used for `repository_dispatch`, duplicate PR checks, and awaiting-production tracking issues when no owner-specific token is configured |
+| `GITHUB_TOKEN_KOMODO` | Optional Komodo-specific fine-grained PAT for `komodohealth/*` repos; same permissions as `GITHUB_TOKEN`; used before `GITHUB_TOKEN` |
+| `GITHUB_TOKEN_<OWNER>` | Optional owner-specific PAT convention for other owners; same permissions as `GITHUB_TOKEN`; `deploy.sh` forwards matching variables from `.env` to Cloud Run |
 | `ADMIN_SECRET` | Bearer token protecting `/admin/renew-watch` — generate with `openssl rand -hex 32` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — used by Cloud Run for triage |
 
