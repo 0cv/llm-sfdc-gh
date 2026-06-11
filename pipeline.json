@@ -2,5 +2,13 @@
   "komodohealth/kiniksa-pjn-patient-journey-navigator": {
     "preProductionBranches": ["msmerge-release", "release"],
     "productionBranch": "main"
+  },
+  "komodohealth/apellis-pjn-patient-journey-navigator": {
+    "preProductionBranches": ["release"],
+    "productionBranch": "main"
+  },
+  "komodohealth/sanofi-pjn": {
+    "preProductionBranches": ["ms-release", "release"],
+    "productionBranch": "main"
   }
 }

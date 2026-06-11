@@ -1,4 +1,6 @@
 {
+  "apellispatientservices": "komodohealth/apellis-pjn-patient-journey-navigator",
   "dropbox": "0cv/dropbox-dev",
-  "kiniksa": "komodohealth/kiniksa-pjn-patient-journey-navigator"
+  "kiniksa": "komodohealth/kiniksa-pjn-patient-journey-navigator",
+  "proventionbioinc": "komodohealth/sanofi-pjn"
 }

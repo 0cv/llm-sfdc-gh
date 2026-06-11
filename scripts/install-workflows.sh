@@ -62,12 +62,14 @@ push_workflow() {
   local ref_suffix="?ref=$target_branch"
 
   # Get current SHA/content if file exists (SHA is required for updates).
+  local current
   local sha
-  sha=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" --jq '.sha' 2>/dev/null || true)
+  current=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" 2>/dev/null || true)
+  sha=$(printf '%s' "$current" | jq -r 'if has("sha") then .sha else "" end' 2>/dev/null || true)
 
   if [[ -n "$sha" ]]; then
     local existing
-    existing=$(gh api "repos/$REPO/contents/.github/workflows/$filename$ref_suffix" --jq '.content' | base64 --decode)
+    existing=$(printf '%s' "$current" | jq -r '.content' | base64 --decode)
     if [[ "$existing" == "$desired" ]]; then
       echo "  unchanged $filename"
       return
