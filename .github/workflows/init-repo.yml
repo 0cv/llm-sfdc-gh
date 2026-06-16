@@ -11,6 +11,8 @@ on:
         required: true
       SF_AUTH_URL:
         required: true
+      BOT_GITHUB_TOKEN:
+        required: false
 
 jobs:
   init:
@@ -23,6 +25,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.baseBranch }}
+          token: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
@@ -52,5 +55,5 @@ jobs:
       - name: Run Claude init session
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/init-repo.ts

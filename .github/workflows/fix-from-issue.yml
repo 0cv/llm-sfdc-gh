@@ -26,6 +26,8 @@ on:
         required: true
       SF_AUTH_URL:
         required: true
+      BOT_GITHUB_TOKEN:
+        required: false
 
 jobs:
   fix:
@@ -42,6 +44,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.baseBranch }}
+          token: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
@@ -76,6 +79,6 @@ jobs:
           ISSUE_TITLE: ${{ inputs.issueTitle }}
           ISSUE_BODY: ${{ inputs.issueBody }}
           ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           PR_BASE_BRANCH: ${{ inputs.baseBranch }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-issue.ts

@@ -27,6 +27,12 @@ fi
 
 LLMREPO="0cv/llm-sfdc-gh"
 INSTALL_BRANCH="claude-install-workflows-${BASE_BRANCH//\//-}"
+REPO_OWNER="${REPO%%/*}"
+REPO_OWNER_LOWER=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+BOT_GITHUB_TOKEN_SECRET_LINE=""
+if [[ "$REPO_OWNER_LOWER" == "komodohealth" ]]; then
+  BOT_GITHUB_TOKEN_SECRET_LINE='      BOT_GITHUB_TOKEN: ${{ secrets.KOMODO_PAT }}'
+fi
 
 ensure_install_branch() {
   if [[ "$INSTALL_MODE" != "pr" ]]; then
@@ -133,6 +139,7 @@ open_install_pr() {
 render_workflow() {
   local content="$1"
   content="${content//__LLMREPO__/$LLMREPO}"
+  content="${content//__BOT_GITHUB_TOKEN_SECRET__/$BOT_GITHUB_TOKEN_SECRET_LINE}"
   printf '%s' "${content//__BASE_BRANCH__/$BASE_BRANCH}"
 }
 
@@ -173,6 +180,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 YAML
 )
 push_workflow "fix-from-error.yml" "$(render_workflow "$fix_from_error_workflow")"
@@ -224,6 +232,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 
   mark-finished:
     needs: [mark-started, fix]
@@ -442,6 +451,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 
   # Inline line comment ("Add single comment") — branch is in the payload
   # Also fires for Copilot inline comments, but not for other bots
@@ -461,6 +471,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 
   # PR conversation comment — branch is not in payload, fetch it from the API first
   get-pr-branch:
@@ -498,6 +509,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 
   # Original issue comment — resolve the open fix PR, then iterate on that PR
   find-issue-pr:
@@ -572,6 +584,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 
   on-issue-comment-finished:
     needs: [find-issue-pr, on-issue-comment]
@@ -631,6 +644,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
 YAML
 )
 push_workflow "init-repo.yml" "$(render_workflow "$init_repo_workflow")"

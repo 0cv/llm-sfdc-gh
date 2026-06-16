@@ -20,6 +20,8 @@ on:
         required: true
       SF_AUTH_URL:
         required: true
+      BOT_GITHUB_TOKEN:
+        required: false
 
 jobs:
   iterate:
@@ -34,6 +36,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.prBranch }}
+          token: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
@@ -67,5 +70,5 @@ jobs:
           PR_TITLE: ${{ inputs.prTitle }}
           COMMENT_BODY: ${{ inputs.commentBody }}
           COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/iterate-from-review.ts

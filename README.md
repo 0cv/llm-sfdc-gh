@@ -267,8 +267,10 @@ In each repo: Settings → Secrets → Actions
 |--------|-------|
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` |
 | `SF_AUTH_URL` | `force://PlatformCLI::<token>@yourorg.sandbox.my.salesforce.com` |
+| `KOMODO_PAT` | Required only for `komodohealth/*` repos; PAT used by GitHub Actions to push branches and open/update PRs without the workflow-approval gate |
 
-The generated caller workflows pass those two secrets explicitly to the reusable workflows. `CLAUDE_CODE_OAUTH_TOKEN` can be set at the GitHub org level to share it across all repos, as long as the target repo has access to that org secret. Generate it with: `claude setup-token`.
+The generated caller workflows pass those secrets explicitly to the reusable workflows. For `komodohealth/*` repos, the installer also passes `KOMODO_PAT` as `BOT_GITHUB_TOKEN`.
+`CLAUDE_CODE_OAUTH_TOKEN` can be set at the GitHub org level to share it across all repos, as long as the target repo has access to that org secret. Generate it with: `claude setup-token`.
 `SF_AUTH_URL` is per-repo — each repo has its own Salesforce org credentials.
 
 ---
@@ -312,6 +314,7 @@ The generated caller workflows pass those two secrets explicitly to the reusable
 |--------|-------------|
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` — also needed on Cloud Run for triage; can be set at org level |
 | `SF_AUTH_URL` | SFDX auth URL for this repo's Salesforce org |
+| `KOMODO_PAT` | Required only for `komodohealth/*` repos; passed to reusable workflows as `BOT_GITHUB_TOKEN` for checkout, branch pushes, and PR operations |
 
 ### Local dev only (`.env`, not deployed)
 
