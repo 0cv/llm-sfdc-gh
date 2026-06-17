@@ -24,14 +24,20 @@ fi
 if [[ -z "$BASE_BRANCH" ]]; then
   BASE_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
 fi
+PRODUCTION_BRANCH="$(jq -r --arg repo "$REPO" '.[$repo].productionBranch // ""' pipeline.json 2>/dev/null || true)"
+if [[ -z "$PRODUCTION_BRANCH" ]]; then
+  PRODUCTION_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
+fi
 
 LLMREPO="0cv/llm-sfdc-gh"
 INSTALL_BRANCH="claude-install-workflows-${BASE_BRANCH//\//-}"
 REPO_OWNER="${REPO%%/*}"
 REPO_OWNER_LOWER=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
 BOT_GITHUB_TOKEN_SECRET_LINE=""
+BOT_GITHUB_TOKEN_SECRETS_BLOCK=""
 if [[ "$REPO_OWNER_LOWER" == "komodohealth" ]]; then
   BOT_GITHUB_TOKEN_SECRET_LINE='      BOT_GITHUB_TOKEN: ${{ secrets.KOMODO_PAT }}'
+  BOT_GITHUB_TOKEN_SECRETS_BLOCK=$'    secrets:\n      BOT_GITHUB_TOKEN: ${{ secrets.KOMODO_PAT }}'
 fi
 
 ensure_install_branch() {
@@ -124,7 +130,7 @@ open_install_pr() {
     --head "$INSTALL_BRANCH" \
     --base "$BASE_BRANCH" \
     --title "ci: install Claude workflows" \
-    --body "Installs Claude issue, planning, review-iteration, error-dispatch, and init workflows targeting \`$BASE_BRANCH\`." \
+    --body "Installs Claude issue, planning, review-iteration, error-dispatch, awaiting-production cleanup, and init workflows targeting \`$BASE_BRANCH\`." \
     >/dev/null
 
   gh pr list \
@@ -140,11 +146,14 @@ render_workflow() {
   local content="$1"
   content="${content//__LLMREPO__/$LLMREPO}"
   content="${content//__BOT_GITHUB_TOKEN_SECRET__/$BOT_GITHUB_TOKEN_SECRET_LINE}"
+  content="${content//__BOT_GITHUB_TOKEN_SECRETS_BLOCK__/$BOT_GITHUB_TOKEN_SECRETS_BLOCK}"
+  content="${content//__PRODUCTION_BRANCH__/$PRODUCTION_BRANCH}"
   printf '%s' "${content//__BASE_BRANCH__/$BASE_BRANCH}"
 }
 
 echo "Installing Claude workflows into $REPO..."
 echo "Using base branch: $BASE_BRANCH"
+echo "Using production branch: $PRODUCTION_BRANCH"
 if [[ "$INSTALL_MODE" == "pr" ]]; then
   echo "Install mode: pull request"
 fi
@@ -648,6 +657,33 @@ __BOT_GITHUB_TOKEN_SECRET__
 YAML
 )
 push_workflow "init-repo.yml" "$(render_workflow "$init_repo_workflow")"
+
+# ── close-awaiting-production.yml ───────────────────────────────────────────
+close_awaiting_production_workflow=$(cat <<'YAML'
+name: Close Awaiting Production Issues
+
+on:
+  push:
+    branches: [__PRODUCTION_BRANCH__]
+  workflow_dispatch:
+
+concurrency:
+  group: claude-awaiting-production-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  close:
+    uses: __LLMREPO__/.github/workflows/close-awaiting-production.yml@main
+    with:
+      productionBranch: __PRODUCTION_BRANCH__
+__BOT_GITHUB_TOKEN_SECRETS_BLOCK__
+YAML
+)
+push_workflow "close-awaiting-production.yml" "$(render_workflow "$close_awaiting_production_workflow")"
 
 # ── Create claude-fix label ──────────────────────────────────────────────────
 ensure_label() {

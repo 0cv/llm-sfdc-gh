@@ -60,6 +60,9 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │                                                                       │
 │  iterate-from-review.yml  ← triggered natively by PR review / comment │
 │    → Claude reads feedback, updates code, pushes to same branch       │
+│                                                                       │
+│  close-awaiting-production.yml ← triggered by production branch push   │
+│    → closes awaiting-production issues once the fix reaches prod       │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,7 +90,7 @@ To onboard a new org: add a line to `routing.json`, redeploy Cloud Run, and conf
 }
 ```
 
-For repos with a promotion chain, add their pre-production branches and production branch. When a repeat error matches a merged same-title PR whose merge commit is present on a pre-production branch but not the production branch, Cloud Run suppresses the duplicate fix dispatch and creates or updates an `Awaiting production: ...` tracking issue.
+For repos with a promotion chain, add their pre-production branches and production branch. When a repeat error matches a merged same-title PR whose merge commit is present on a pre-production branch but not the production branch, Cloud Run suppresses the duplicate fix dispatch and creates or updates an `Awaiting production: ...` tracking issue. The installed `close-awaiting-production.yml` workflow runs on production-branch pushes and closes those tracking issues once the tracked merge commit reaches production.
 
 ---
 
@@ -99,6 +102,7 @@ For repos with a promotion chain, add their pre-production branches and producti
   fix-from-issue.yml       on: workflow_call — GitHub issue → Claude fix → PR
   plan-from-issue.yml      on: workflow_call — GitHub issue → Claude plan comment
   iterate-from-review.yml  on: workflow_call — PR feedback → Claude iterates
+  close-awaiting-production.yml on: workflow_call — close prod tracking issues
 
 prompts/
   fix-error.md             Claude prompt: diagnose + fix from exception email
@@ -136,6 +140,7 @@ src/
     fix-from-issue.ts      Entry point for fix-from-issue workflow (fetched by GA)
     plan-from-issue.ts     Entry point for plan-from-issue workflow (fetched by GA)
     iterate-from-review.ts Entry point for iterate-from-review workflow (fetched by GA)
+    close-awaiting-production.ts Entry point for prod tracking issue cleanup
 
 routing.json               +tag → GitHub repo mapping
 pipeline.json              repo → promotion branches for duplicate suppression
@@ -248,15 +253,17 @@ This is the only manual step after deployment. Cloud Scheduler handles all subse
 ./scripts/install-workflows.sh owner/repo [base-branch] --pr
 ```
 
-Creates (or updates) five workflow files in the target repo's `.github/workflows/`:
+Creates (or updates) six workflow files in the target repo's `.github/workflows/`:
 - `fix-from-error.yml` — triggers on `repository_dispatch: [salesforce-error]`
 - `fix-from-issue.yml` — triggers natively when an issue is labeled `claude-fix`
 - `plan-from-issue.yml` — triggers when an issue is labeled `claude-plan`, then retriggers on human comments after the plan is ready; installs SF CLI and authenticates with `SF_AUTH_URL` for org metadata discovery
 - `iterate-from-review.yml` — triggers natively on PR review or PR comment
+- `close-awaiting-production.yml` — triggers on pushes to the configured production branch and manually via `workflow_dispatch`; closes stale `claude-awaiting-production` issues
 - `init-repo.yml` — manual workflow to generate `CLAUDE.md`
 
 Each is a thin caller that delegates to the reusable workflows in this repo.
 If `base-branch` is omitted, the installer uses the target repo's default branch. For repos with a promotion chain, pass the first integration branch explicitly, for example `msmerge-release`.
+For cleanup, the installer reads `productionBranch` from `pipeline.json`; if no pipeline entry exists, it uses the target repo's default branch.
 If direct workflow writes are blocked by repository rules, pass `--pr`; the installer writes to `claude-install-workflows-<base-branch>` and opens a PR into the selected base branch.
 
 ### 8. Add GitHub Actions secrets to each SF repo
@@ -358,3 +365,5 @@ The generated caller workflows pass those secrets explicitly to the reusable wor
 8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant repo files and can use the authenticated SF CLI to query or retrieve org metadata for analysis, then posts an implementation plan as an issue comment. After the `claude-plan-ready` label is present, human comments on the issue retrigger the plan workflow and update the existing plan comment. It does not deploy, create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
 
 Duplicate error emails are suppressed when an open PR already exists with the deterministic title `fix: <ExceptionType> in <ApexClassOrFlow>`. This keeps repeated Salesforce emails from opening multiple PRs for the same active fix.
+
+If a repeat error matches a merged same-title PR that is present in pre-production but not production, Cloud Run creates or updates an `Awaiting production: ...` issue with the `claude-awaiting-production` label. The installed cleanup workflow runs on production-branch pushes and closes those issues once the tracked merge commit is contained in the configured production branch.

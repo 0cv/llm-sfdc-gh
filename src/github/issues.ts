@@ -32,6 +32,8 @@ interface GitHubIssue {
   title: string;
   html_url: string;
   state: string;
+  body?: string | null;
+  pull_request?: unknown;
 }
 
 interface SearchIssuesResponse {
@@ -43,6 +45,7 @@ export interface IssueMatch {
   title: string;
   url: string;
   state: string;
+  body?: string;
 }
 
 export function actionsRunUrl(): string | null {
@@ -134,7 +137,60 @@ export async function findOpenIssueByTitle(
     title: match.title,
     url: match.html_url,
     state: match.state,
+    body: match.body || "",
   };
+}
+
+export async function listOpenIssuesByLabel(repo: string, label: string): Promise<IssueMatch[]> {
+  const token = githubTokenForRepo(repo);
+  if (!repo || !label || !token) {
+    throw new Error("Cannot list issues; GitHub context is incomplete");
+  }
+
+  const issues: IssueMatch[] = [];
+  const maxPages = 5;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const params = new URLSearchParams({
+      state: "open",
+      labels: label,
+      per_page: "100",
+      page: String(page),
+    });
+    const response = await fetch(`https://api.github.com/repos/${repo}/issues?${params}`, {
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${token}`,
+        "user-agent": "llm-sfdc-gh",
+        "x-github-api-version": API_VERSION,
+      },
+    });
+
+    if (!response.ok) {
+      const responseBody = await response.text();
+      logger.warn(
+        { repo, label, status: response.status, body: responseBody },
+        "Failed to list issues"
+      );
+      throw new Error(`Failed to list issues: ${response.status} ${responseBody}`);
+    }
+
+    const pageIssues = (await response.json()) as GitHubIssue[];
+    for (const issue of pageIssues) {
+      if (issue.pull_request) continue;
+      issues.push({
+        number: issue.number,
+        title: issue.title,
+        url: issue.html_url,
+        state: issue.state,
+        body: issue.body || "",
+      });
+    }
+
+    if (pageIssues.length < 100) break;
+  }
+
+  return issues;
 }
 
 export async function createIssue(
@@ -206,6 +262,41 @@ export async function updateIssueBody(
     logger.warn(
       { repo, issueNumber, status: response.status, body: responseBody },
       "Failed to update issue"
+    );
+    return false;
+  }
+
+  return true;
+}
+
+export async function closeIssue(
+  repo: string,
+  issueNumber: string,
+  stateReason: "completed" | "not_planned" | "duplicate" = "completed"
+): Promise<boolean> {
+  const token = githubTokenForRepo(repo);
+  if (!repo || !issueNumber || !token) {
+    logger.warn({ repo, issueNumber }, "Skipping issue close; GitHub context is incomplete");
+    return false;
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+    method: "PATCH",
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      "user-agent": "llm-sfdc-gh",
+      "x-github-api-version": API_VERSION,
+    },
+    body: JSON.stringify({ state: "closed", state_reason: stateReason }),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    logger.warn(
+      { repo, issueNumber, status: response.status, body: responseBody },
+      "Failed to close issue"
     );
     return false;
   }
