@@ -178,6 +178,8 @@ dropbox-dev (SF repo)
 - `node` 24+
 - `@salesforce/cli` installed globally
 
+Reusable GitHub Actions workflows pin Node to `24.16.0` and Salesforce CLI to `2.140.6` to avoid runtime drift in hosted runners.
+
 ### 1. GCP infrastructure
 
 ```bash
