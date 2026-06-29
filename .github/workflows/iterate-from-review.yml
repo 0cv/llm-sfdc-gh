@@ -31,14 +31,6 @@ jobs:
   iterate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      actions: read
-      checks: read
-      contents: write
-      pull-requests: write
-      issues: write
-      statuses: read
-
     steps:
       - uses: actions/checkout@v6
         with:
