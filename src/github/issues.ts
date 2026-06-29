@@ -1,5 +1,5 @@
 import { logger } from "../utils/logger.js";
-import { githubTokenForRepo } from "./token.js";
+import { githubCommentTokenForRepo, githubTokenForRepo } from "./token.js";
 
 const API_VERSION = "2022-11-28";
 
@@ -62,7 +62,7 @@ export async function postIssueComment(
   issueNumber: string,
   body: string
 ): Promise<void> {
-  const token = githubTokenForRepo(repo);
+  const token = githubCommentTokenForRepo(repo);
   if (!repo || !issueNumber || !token) {
     logger.warn({ repo, issueNumber }, "Skipping issue comment; GitHub context is incomplete");
     return;
@@ -369,7 +369,7 @@ export async function updateIssueComment(
   commentId: number,
   body: string
 ): Promise<boolean> {
-  const token = githubTokenForRepo(repo);
+  const token = githubCommentTokenForRepo(repo);
   if (!repo || !commentId || !token) {
     logger.warn({ repo, commentId }, "Skipping issue comment update; GitHub context is incomplete");
     return false;

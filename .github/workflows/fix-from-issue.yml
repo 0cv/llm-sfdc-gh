@@ -88,5 +88,6 @@ jobs:
           ISSUE_BODY: ${{ inputs.issueBody }}
           ISSUE_AUTHOR: ${{ inputs.issueAuthor }}
           GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_COMMENT_TOKEN: ${{ github.token }}
           PR_BASE_BRANCH: ${{ inputs.baseBranch }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/fix-from-issue.ts

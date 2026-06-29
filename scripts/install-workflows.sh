@@ -487,6 +487,9 @@ __BOT_GITHUB_TOKEN_SECRET__
     if: >
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
+      !contains(github.event.comment.body, '<!-- llm-sfdc-gh:pr-iteration-update -->') &&
+      !startsWith(github.event.comment.body, 'Automated update after feedback from ') &&
+      !startsWith(github.event.comment.body, 'Updated this PR after feedback from ') &&
       (github.event.comment.user.type != 'Bot' ||
        github.event.comment.user.login == 'copilot-pull-request-reviewer[bot]')
     runs-on: ubuntu-latest
@@ -526,6 +529,10 @@ __BOT_GITHUB_TOKEN_SECRET__
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request == null &&
       contains(github.event.issue.labels.*.name, 'claude-fix') &&
+      !startsWith(github.event.comment.body, 'Fix PR opened:') &&
+      !startsWith(github.event.comment.body, 'Iteration workflow is in progress:') &&
+      !startsWith(github.event.comment.body, 'Iteration workflow failed:') &&
+      !startsWith(github.event.comment.body, 'I received this comment, but no open fix PR was found') &&
       github.event.comment.user.type != 'Bot'
     runs-on: ubuntu-latest
     outputs:

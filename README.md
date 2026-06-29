@@ -276,7 +276,7 @@ In each repo: Settings → Secrets → Actions
 |--------|-------|
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token from `claude setup-token` |
 | `SF_AUTH_URL` | `force://PlatformCLI::<token>@yourorg.sandbox.my.salesforce.com` |
-| `KOMODO_PAT` | Required only for `komodohealth/*` repos; PAT used by GitHub Actions to push branches and open/update PRs without the workflow-approval gate |
+| `KOMODO_PAT` | Required only for `komodohealth/*` repos; PAT used by GitHub Actions to push branches and open/update PRs without the workflow-approval gate. Automated issue/PR comments use the workflow `github.token` where available so they appear as `github-actions[bot]`. |
 
 The generated caller workflows pass those secrets explicitly to the reusable workflows. For `komodohealth/*` repos, the installer also passes `KOMODO_PAT` as `BOT_GITHUB_TOKEN`.
 `CLAUDE_CODE_OAUTH_TOKEN` can be set at the GitHub org level to share it across all repos, as long as the target repo has access to that org secret. Generate it with: `claude setup-token`.
@@ -362,7 +362,7 @@ The generated caller workflows pass those secrets explicitly to the reusable wor
 
 6. **PR** — `git push` to a new branch + `gh pr create` with root cause, fix summary, and test coverage description.
 
-7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, and pushes.
+7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, pushes, then waits for the PR validation check. If validation fails or is not confirmed, the iteration workflow fails and the PR comment says so.
 
 8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant repo files and can use the authenticated SF CLI to query or retrieve org metadata for analysis, then posts an implementation plan as an issue comment. After the `claude-plan-ready` label is present, human comments on the issue retrigger the plan workflow and update the existing plan comment. It does not deploy, create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
 

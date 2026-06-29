@@ -4,6 +4,10 @@
  */
 
 import { logger } from "../utils/logger.js";
+import {
+  isAutomationAuthoredComment,
+  stripAutomationSectionsFromPullRequestBody,
+} from "./automation.js";
 import { githubTokenForRepo } from "./token.js";
 
 const API_VERSION = "2022-11-28";
@@ -97,15 +101,18 @@ export async function buildPrContext(repo: string, prNumber: string): Promise<st
     if (issue) {
       const parts = [`# Linked Issue #${issueNumber}: ${issue.title}`];
       if (issue.body) parts.push(issue.body);
-      for (const comment of issueComments ?? []) {
+      for (const comment of (issueComments ?? []).filter(
+        (issueComment) => !isAutomationAuthoredComment(issueComment.body)
+      )) {
         parts.push(`**${comment.user.login}** (${comment.created_at}):\n${comment.body}`);
       }
       sections.push(parts.join("\n\n"));
     }
   }
 
-  if (pr?.body) {
-    sections.push(`# PR Description\n\n${pr.body}`);
+  const prBody = pr?.body ? stripAutomationSectionsFromPullRequestBody(pr.body) : "";
+  if (prBody) {
+    sections.push(`# PR Description\n\n${prBody}`);
   }
 
   const reviews = await safe("reviews", () =>
@@ -143,8 +150,10 @@ export async function buildPrContext(repo: string, prNumber: string): Promise<st
   const conversation = await safe("PR conversation", () =>
     ghApi<GhComment[]>(repo, `repos/${repo}/issues/${prNumber}/comments`)
   );
-  if (conversation && conversation.length > 0) {
-    const blocks = conversation.map(
+  const relevantConversation =
+    conversation?.filter((comment) => !isAutomationAuthoredComment(comment.body)) ?? [];
+  if (relevantConversation.length > 0) {
+    const blocks = relevantConversation.map(
       (comment) => `**${comment.user.login}** (${comment.created_at}):\n${comment.body}`
     );
     sections.push(`# PR Conversation\n\n${blocks.join("\n\n---\n\n")}`);
