@@ -57,7 +57,10 @@ const result = await runClaudeSession(
     PR_CONTEXT: prContext,
     SF_TARGET_ORG: "pipeline-org",
   },
-  model
+  model,
+  {
+    summaryMaxChars: 8000,
+  }
 );
 
 function extractIterationSummary(summary: string): string {

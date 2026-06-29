@@ -430,17 +430,118 @@ on:
     types: [created]
   issue_comment:
     types: [created]
+  workflow_run:
+    workflows: ["Create or Update Pull Request"]
+    types: [completed]
 
 concurrency:
-  group: claude-iterate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: claude-iterate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number || github.event.workflow_run.id }}
   cancel-in-progress: false
 
 permissions:
+  actions: read
+  checks: read
   contents: write
   pull-requests: write
   issues: write
+  statuses: read
 
 jobs:
+  # Failed PR validation — resolve the open PR from the failed validation run, then iterate on it
+  resolve-failed-validation-pr:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.name == 'Create or Update Pull Request'
+    runs-on: ubuntu-latest
+    outputs:
+      found: ${{ steps.pr.outputs.found }}
+      number: ${{ steps.pr.outputs.number }}
+      title: ${{ steps.pr.outputs.title }}
+      branch: ${{ steps.pr.outputs.branch }}
+      commentBody: ${{ steps.pr.outputs.commentBody }}
+    steps:
+      - id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          jobs_json=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/jobs?per_page=100")
+          failed_job=$(jq -c '[.jobs[] | select(.name | contains("Validate Delta Package")) | select(.conclusion == "failure")] | first // empty' <<< "$jobs_json")
+
+          if [[ -z "$failed_job" ]]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          failed_job_name=$(jq -r '.name // "Validate Delta Package"' <<< "$failed_job")
+          failed_job_url=$(jq -r '.html_url // ""' <<< "$failed_job")
+          run_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")
+          head_sha=$(jq -r '.head_sha // ""' <<< "$run_json")
+
+          if [[ -z "$head_sha" ]]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          prs_json=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$GITHUB_REPOSITORY/commits/$head_sha/pulls")
+          match=$(jq -c --arg base "__BASE_BRANCH__" --arg sha "$head_sha" \
+            '[.[] | select(.state == "open") | select(.base.ref == $base) | select(.head.sha == $sha)] | first // empty' \
+            <<< "$prs_json")
+
+          if [[ -z "$match" ]]; then
+            pr_number=$(jq -r --arg base "__BASE_BRANCH__" \
+              '.workflow_run.pull_requests[]? | select(.base.ref == $base) | .number' \
+              "$GITHUB_EVENT_PATH" | head -n 1)
+            if [[ -n "$pr_number" ]]; then
+              match=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number")
+            fi
+          fi
+
+          if [[ -z "$match" ]]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "found=true"
+            echo "number=$(jq -r '.number' <<< "$match")"
+            echo "branch=$(jq -r '.head.ref' <<< "$match")"
+            echo "title<<EOF"
+            jq -r '.title' <<< "$match"
+            echo "EOF"
+            echo "commentBody<<EOF"
+            echo "CI validation failed after the latest PR update."
+            echo
+            echo "Workflow run: $RUN_URL"
+            echo "Failed job: $failed_job_name"
+            if [[ -n "$failed_job_url" ]]; then
+              echo "Failed job URL: $failed_job_url"
+            fi
+            echo "Head SHA: $head_sha"
+            echo
+            echo "Inspect the failed validation job log and update the PR branch so validation passes."
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  on-validation-failure:
+    needs: resolve-failed-validation-pr
+    if: needs.resolve-failed-validation-pr.result == 'success' && needs.resolve-failed-validation-pr.outputs.found == 'true'
+    uses: __LLMREPO__/.github/workflows/iterate-from-review.yml@main
+    with:
+      prNumber: ${{ needs.resolve-failed-validation-pr.outputs.number }}
+      prTitle: ${{ needs.resolve-failed-validation-pr.outputs.title }}
+      commentBody: ${{ needs.resolve-failed-validation-pr.outputs.commentBody }}
+      commentAuthor: ci-validation
+      prBranch: ${{ needs.resolve-failed-validation-pr.outputs.branch }}
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+__BOT_GITHUB_TOKEN_SECRET__
+
   # Formal review (changes_requested or commented) — branch is in the payload
   # Also fires for Copilot reviews (copilot-pull-request-reviewer[bot]), but not for other bots
   on-review:
@@ -490,6 +591,7 @@ __BOT_GITHUB_TOKEN_SECRET__
       !contains(github.event.comment.body, '<!-- llm-sfdc-gh:pr-iteration-update -->') &&
       !startsWith(github.event.comment.body, 'Automated update after feedback from ') &&
       !startsWith(github.event.comment.body, 'Updated this PR after feedback from ') &&
+      !startsWith(github.event.comment.body, 'Fixed the failing check.') &&
       (github.event.comment.user.type != 'Bot' ||
        github.event.comment.user.login == 'copilot-pull-request-reviewer[bot]')
     runs-on: ubuntu-latest

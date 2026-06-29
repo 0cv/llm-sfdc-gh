@@ -4,6 +4,7 @@ export const PR_ITERATION_HISTORY_MARKER = "<!-- llm-sfdc-gh:pr-iteration-histor
 const AUTOMATION_COMMENT_PREFIXES = [
   "Automated update after feedback from ",
   "Updated this PR after feedback from ",
+  "Fixed the failing check.",
   "Fix PR opened:",
   "Fix workflow is in progress:",
   "Fix workflow failed:",

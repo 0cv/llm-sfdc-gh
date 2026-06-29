@@ -259,7 +259,7 @@ Creates (or updates) six workflow files in the target repo's `.github/workflows/
 - `fix-from-error.yml` — triggers on `repository_dispatch: [salesforce-error]`
 - `fix-from-issue.yml` — triggers natively when an issue is labeled `claude-fix`
 - `plan-from-issue.yml` — triggers when an issue is labeled `claude-plan`, then retriggers on human comments after the plan is ready; installs SF CLI and authenticates with `SF_AUTH_URL` for org metadata discovery
-- `iterate-from-review.yml` — triggers natively on PR review or PR comment
+- `iterate-from-review.yml` — triggers natively on PR review, PR comment, or failed PR validation
 - `close-awaiting-production.yml` — triggers on pushes to the configured production branch and manually via `workflow_dispatch`; closes stale `claude-awaiting-production` issues
 - `init-repo.yml` — manual workflow to generate `CLAUDE.md`
 
@@ -362,7 +362,7 @@ The generated caller workflows pass those secrets explicitly to the reusable wor
 
 6. **PR** — `git push` to a new branch + `gh pr create` with root cause, fix summary, and test coverage description.
 
-7. **Iterate** — when a developer comments on the PR, a new Claude session checks out the branch, reads the feedback, updates the code, re-runs tests, pushes, then waits for the PR validation check. If validation fails or is not confirmed, the iteration workflow fails and the PR comment says so.
+7. **Iterate** — when a developer comments on the PR or the PR validation workflow fails, a new Claude session checks out the branch, reads the feedback or failed CI context, updates the code, re-runs tests, pushes, then waits for the PR validation check. If validation fails or is not confirmed, the iteration workflow fails and the PR comment says so.
 
 8. **Plan-only issues** — when a developer labels an issue `claude-plan`, Claude reads relevant repo files and can use the authenticated SF CLI to query or retrieve org metadata for analysis, then posts an implementation plan as an issue comment. After the `claude-plan-ready` label is present, human comments on the issue retrigger the plan workflow and update the existing plan comment. It does not deploy, create a branch, commit, push, or open a PR. Add `claude-fix` later to execute.
 

@@ -32,9 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
+      actions: read
+      checks: read
       contents: write
       pull-requests: write
       issues: write
+      statuses: read
 
     steps:
       - uses: actions/checkout@v6
@@ -80,4 +83,5 @@ jobs:
           COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
           GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_COMMENT_TOKEN: ${{ github.token }}
+          GITHUB_CHECKS_TOKEN: ${{ github.token }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/iterate-from-review.ts

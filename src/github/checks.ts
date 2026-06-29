@@ -1,5 +1,5 @@
 import { logger } from "../utils/logger.js";
-import { githubTokenForRepo } from "./token.js";
+import { githubChecksTokenForRepo } from "./token.js";
 
 const API_VERSION = "2022-11-28";
 const DEFAULT_VALIDATION_CHECK_PATTERN = "Validate Delta Package";
@@ -58,7 +58,7 @@ export interface PullRequestValidation {
 }
 
 async function ghApi<T>(repo: string, endpoint: string): Promise<T> {
-  const token = githubTokenForRepo(repo);
+  const token = githubChecksTokenForRepo(repo);
   if (!token) throw new Error(`No GitHub token configured for ${repo}`);
 
   const response = await fetch(`https://api.github.com/${endpoint}`, {

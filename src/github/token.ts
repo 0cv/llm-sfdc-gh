@@ -31,3 +31,12 @@ export function githubTokenForRepo(repo: string): string | undefined {
 export function githubCommentTokenForRepo(repo: string): string | undefined {
   return env.GITHUB_COMMENT_TOKEN || env.GH_COMMENT_TOKEN || githubTokenForRepo(repo);
 }
+
+export function githubChecksTokenForRepo(repo: string): string | undefined {
+  return (
+    env.GITHUB_CHECKS_TOKEN ||
+    env.GITHUB_COMMENT_TOKEN ||
+    env.GH_COMMENT_TOKEN ||
+    githubTokenForRepo(repo)
+  );
+}

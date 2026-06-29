@@ -66,7 +66,9 @@ The following is the full conversation history for this PR, including any linked
    git push
    ```
 
-7. **Summarize the update**: End your response with exactly one concise line in this format. Summarize only the validation you directly ran; the workflow will verify the PR validation check after your session finishes.
+7. **Do not post PR comments directly**: Do not call `gh pr comment`, `gh issue comment`, or the GitHub comments API. The workflow runner will post the final update comment after your session ends.
+
+8. **Summarize the update**: End your response with exactly one concise line in this format. Summarize only the validation you directly ran; the workflow will verify the PR validation check after your session finishes.
    ```text
    ITERATION_SUMMARY: <what changed and what validation you ran>
    ```
