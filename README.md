@@ -334,6 +334,8 @@ The generated caller workflows pass those secrets explicitly to the reusable wor
 | `MAX_CLAUDE_TURNS` | Maximum turns for fix/init/iterate Claude sessions (default 40) |
 | `MAX_PLAN_TURNS` | Maximum turns for plan-only Claude sessions (default 40) |
 
+Iteration workflows expose the workflow `github.token` as `GH_TOKEN` so Claude can read Actions logs, checks, and run metadata. When a repo also needs a PAT for branch pushes, the reusable workflow keeps that token in `GITHUB_WRITE_TOKEN`; checkout credentials still use the PAT-backed token.
+
 ---
 
 ## Scripts reference

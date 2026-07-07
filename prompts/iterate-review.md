@@ -34,6 +34,8 @@ The following is the full conversation history for this PR, including any linked
    gh pr diff {{PR_NUMBER}}
    ```
 
+   If the feedback is from `ci-validation` or mentions a failed check, inspect the failed GitHub Actions job log first. The workflow sets `GH_TOKEN` to an Actions-token with log access, so commands like `gh run view <run-id> --log-failed --repo {{REPO_FULL_NAME}}` should work. Normal `git push` still uses the checkout credentials.
+
 4. **Address the feedback**: Make the requested changes. If the feedback is unclear, make your best judgment and explain your reasoning in the commit message.
 
    Before creating any new Salesforce metadata (custom objects, custom fields, Apex classes):

@@ -18,6 +18,7 @@ function ownerTokenEnvNames(repo: string): string[] {
 }
 
 export function githubTokenForRepo(repo: string): string | undefined {
+  if (env.GITHUB_WRITE_TOKEN) return env.GITHUB_WRITE_TOKEN;
   if (env.GH_TOKEN) return env.GH_TOKEN;
 
   for (const name of ownerTokenEnvNames(repo)) {

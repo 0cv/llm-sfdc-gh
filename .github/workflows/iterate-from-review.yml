@@ -73,7 +73,8 @@ jobs:
           PR_TITLE: ${{ inputs.prTitle }}
           COMMENT_BODY: ${{ inputs.commentBody }}
           COMMENT_AUTHOR: ${{ inputs.commentAuthor }}
-          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_WRITE_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_COMMENT_TOKEN: ${{ github.token }}
           GITHUB_CHECKS_TOKEN: ${{ github.token }}
         run: npx tsx /tmp/llm-sfdc-gh/src/runner/iterate-from-review.ts
