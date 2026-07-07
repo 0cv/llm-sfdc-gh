@@ -32,6 +32,7 @@ on:
 env:
   NODE_VERSION: "24.16.0"
   SALESFORCE_CLI_VERSION: "2.140.6"
+  MAX_CLAUDE_TURNS: "80"
 
 jobs:
   fix:
