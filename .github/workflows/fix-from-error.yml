@@ -43,7 +43,7 @@ env:
 jobs:
   fix:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     permissions:
       contents: write
       pull-requests: write
