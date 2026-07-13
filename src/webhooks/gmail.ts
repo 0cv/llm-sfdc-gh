@@ -236,11 +236,11 @@ function isProcessedMessage(msgId: string): boolean {
 }
 
 /**
- * Extract +tag from To: address and look up in routing table.
+ * Extract +tag from the dedicated Salesforce error address and look it up in the routing table.
  * e.g. "salesforceerrors+dropbox@gmail.com" → "0cv/dropbox-dev"
  */
 function resolveRepo(recipients: string): string | null {
-  const match = recipients.match(/\+([^@>\s]+)@/);
+  const match = recipients.match(/salesforceerrors\+([^@>\s]+)@gmail\.com/i);
   const tag = match?.[1]?.toLowerCase();
   if (!tag) return null;
   return routing[tag] ?? null;
