@@ -4,6 +4,7 @@
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { logger } from "../utils/logger.js";
+import { CLAUDE_EFFORT } from "./models.js";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -42,7 +43,7 @@ export async function runClaudeSession(
 ): Promise<SessionResult> {
   const prompt = await loadPrompt(promptName, vars);
 
-  logger.info({ promptName, model }, "Starting Claude session");
+  logger.info({ promptName, model, effort: CLAUDE_EFFORT }, "Starting Claude session");
 
   let lastAssistantText = "";
   let prUrl: string | null = null;
@@ -52,6 +53,7 @@ export async function runClaudeSession(
       prompt,
       options: {
         model,
+        effort: CLAUDE_EFFORT,
         maxTurns: sessionOptions.maxTurns ?? parseInt(process.env.MAX_CLAUDE_TURNS || "40"),
         allowedTools: sessionOptions.allowedTools ?? [
           "Read",
