@@ -1,6 +1,6 @@
 /**
  * Classifies the complexity of a Claude task to route to the right model.
- * Simple → Opus 4.8. Complex → Opus 5.
+ * Simple → Opus 5.5. Complex → Opus 5.5.
  *
  * Uses query() (agent SDK) instead of the direct Anthropic SDK so that
  * CLAUDE_CODE_OAUTH_TOKEN is handled correctly by the claude CLI.
@@ -51,7 +51,7 @@ export async function pickModel(taskSummary: string): Promise<string> {
     logger.info({ complexity, model }, "Model selected");
     return model;
   } catch (err) {
-    logger.warn({ err }, "Complexity classification failed, defaulting to Opus 4.8");
+    logger.warn({ err }, "Complexity classification failed, defaulting to simple model");
     return CLAUDE_MODELS.simple;
   }
 }

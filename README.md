@@ -32,7 +32,7 @@ Developers review the PR, leave feedback, and Claude iterates. GitHub Issues lab
 │    → dedup (skip if same error seen in last 24h)                      │
 │    → skip dispatch if an open PR already has the expected fix title   │
 │    → skip dispatch if pipeline.json shows the fix is awaiting prod    │
-│    → triage via Claude Haiku (skip operational noise)                 │
+│    → triage via Claude Sonnet 5.5 (skip operational noise)            │
 │    → POST /repos/0cv/dropbox-dev/dispatches  (repository_dispatch)    │
 │                                                                       │
 │  POST /admin/renew-watch  (bearer token protected)                    │
@@ -130,7 +130,7 @@ src/
   github/
     dispatch.ts            GitHub repository_dispatch API call
   triage/
-    classifier.ts          Haiku-based bug vs. operational noise classifier
+    classifier.ts          Sonnet 5.5 bug vs. operational noise classifier
   dedup/
     index.ts               In-memory error deduplication (24h TTL)
   claude/
@@ -352,7 +352,7 @@ Iteration workflows expose the workflow `github.token` as `GH_TOKEN` so Claude c
 
 ## How Claude fixes errors
 
-1. **Triage** — a fast Haiku call classifies the error as a code bug vs. operational noise (governor limits, lock contention, timeouts). Operational errors are skipped.
+1. **Triage** — a fast Sonnet 5.5 call classifies the error as a code bug vs. operational noise (governor limits, lock contention, timeouts). Operational errors are skipped.
 
 2. **Diagnose** — Claude reads the Apex class named in the exception, understands the root cause.
 

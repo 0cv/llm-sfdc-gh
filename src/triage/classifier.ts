@@ -1,5 +1,5 @@
 /**
- * Lightweight triage using Claude Haiku to determine if an error
+ * Lightweight triage using Claude Sonnet 5.5 to determine if an error
  * is a code bug (worth fixing) vs. operational noise (skip).
  *
  * Uses query() (agent SDK / claude CLI) so CLAUDE_CODE_OAUTH_TOKEN is handled correctly.
@@ -8,7 +8,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SalesforceError } from "../email/parser.js";
 import { logger } from "../utils/logger.js";
-import { CLAUDE_MODELS } from "../claude/models.js";
+import { CLAUDE_EFFORT, CLAUDE_MODELS } from "../claude/models.js";
 
 export interface TriageResult {
   isCodeBug: boolean;
@@ -54,6 +54,7 @@ export async function triageError(error: SalesforceError): Promise<TriageResult>
         `Exception type: ${error.exceptionType}\nMessage: ${error.message}\nClass: ${error.apexClass ?? "unknown"}\nStack trace:\n${error.stackTrace}`,
       options: {
         model: CLAUDE_MODELS.triage,
+        effort: CLAUDE_EFFORT,
         maxTurns: 1,
         allowedTools: [],
         settingSources: [],
