@@ -231,8 +231,10 @@ GITHUB_TOKEN_KOMODO=github_pat_...
 ### 5. Deploy Cloud Run
 
 ```bash
-./scripts/deploy.sh <gcp-project-id>
+./scripts/deploy.sh
 ```
+
+The GCP project defaults to the one in `GMAIL_PUBSUB_TOPIC` from `.env`, whatever gcloud's active project is. Pass `./scripts/deploy.sh <gcp-project-id> [region]` to override.
 
 This single command:
 - Deploys the Cloud Run service
@@ -291,7 +293,7 @@ The generated caller workflows pass those secrets explicitly to the reusable wor
    { "newtag": "org/repo-name" }
    ```
 2. If the repo has a promotion chain, add an entry to `pipeline.json`.
-3. Redeploy: `./scripts/deploy.sh <gcp-project-id>`
+3. Redeploy: `./scripts/deploy.sh`
 4. Configure Salesforce to send exception emails to `salesforceerrors+newtag@gmail.com`
 5. Install workflows: `./scripts/install-workflows.sh org/repo-name [base-branch]`
 6. Add `SF_AUTH_URL` secret to `org/repo-name` (Settings → Secrets → Actions)
@@ -344,7 +346,7 @@ Iteration workflows expose the workflow `github.token` as `GH_TOKEN` so Claude c
 |--------|------------|---------|
 | `setup-gcp.sh` | Once, new GCP project | `./scripts/setup-gcp.sh <project-id> <gmail>` |
 | `auth-gmail.ts` | Once, or when rotating credentials | `npm run auth-gmail` |
-| `deploy.sh` | Every code change or env var update | `./scripts/deploy.sh <project-id>` |
+| `deploy.sh` | Every code change or env var update | `./scripts/deploy.sh [project-id] [region]` |
 | `renew-gmail-watch.ts` | Once after first deploy (then automated) | `npm run renew-watch` |
 | `install-workflows.sh` | Once per new repo (or to update) | `./scripts/install-workflows.sh owner/repo [base-branch] [--pr]` |
 

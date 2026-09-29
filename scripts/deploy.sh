@@ -5,22 +5,29 @@
 # Usage: ./scripts/deploy.sh [gcp-project-id] [region]
 #
 # Defaults:
-#   project: current gcloud project
+#   project: the project in GMAIL_PUBSUB_TOPIC from .env
 #   region:  us-central1
 
 set -euo pipefail
 
-PROJECT="${1:-$(gcloud config get-value project)}"
-REGION="${2:-us-central1}"
-SERVICE="llm-sfdc-gh"
-TOPIC="sf-errors"
-SUBSCRIPTION="sf-errors-push"
 ENV_FILE=".env"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Error: .env file not found"
   exit 1
 fi
+
+TOPIC_PROJECT=$(grep -E "^GMAIL_PUBSUB_TOPIC=" "$ENV_FILE" | tr -d '\r' | sed -nE 's#^GMAIL_PUBSUB_TOPIC=projects/([^/]+)/topics/.*#\1#p') || true
+PROJECT="${1:-$TOPIC_PROJECT}"
+if [[ -z "$PROJECT" ]]; then
+  echo "Error: no project given and GMAIL_PUBSUB_TOPIC in .env is not projects/<project-id>/topics/<topic>"
+  exit 1
+fi
+
+REGION="${2:-us-central1}"
+SERVICE="llm-sfdc-gh"
+TOPIC="sf-errors"
+SUBSCRIPTION="sf-errors-push"
 
 # Extract only the Cloud Run variables from .env
 CLOUD_RUN_VARS=(
